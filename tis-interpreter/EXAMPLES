@@ -26,9 +26,6 @@ is a readable implementation of the sha3 cryptographic hash function
 ../../tis-interpreter.sh -main tis_main tis-main.c readable_sha3/main.c \
                          readable_sha3/sha3.c
 
-The first two examples contains a bug, the details for which are printed
-when tis-interpreter is launched.
-
 The analysis of libraries that depend on other libraries requires either to
 provide replacement stubs for the called functions, or to list the source
 code files of all libraries on the command-line at once. Providing single

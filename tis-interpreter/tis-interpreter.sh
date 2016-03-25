@@ -28,12 +28,12 @@ if [ -z "${TIS_INTERPRETER_USE_FRAMA_C+x}" ]
 then
   # If TIS_INTERPRETER_USE_FRAMA_C variable is not set
   # then we use the local Frama-C installation.
-  
+
   export FRAMAC_SHARE=$TIS_PATH/share/frama-c
   export FRAMAC_LIB=$TIS_PATH/lib/frama-c
   export FRAMAC_PLUGIN=$TIS_PATH/lib/frama-c/plugins
   export OCAMLFIND_CONF=/dev/null
-  
+
   frama_c_binary="$TIS_PATH/bin/frama-c"
 fi
 
@@ -43,22 +43,46 @@ local gui="0"
 local builtins="\
   -val-builtin memcmp:tis_memcmp \
   -val-builtin memcpy:tis_memcpy \
-  -val-builtin memset:tis_memset \
   -val-builtin memmove:tis_memmove \
+  -val-builtin wmemcpy:tis_wmemcpy \
+  -val-builtin wmemmove:tis_wmemmove \
+  -val-builtin memset:tis_memset \
+  -val-builtin memchr:tis_memchr \
   -val-builtin malloc:Frama_C_alloc_size \
   -val-builtin realloc:tis_realloc \
   -val-builtin free:Frama_C_free \
   -val-builtin strcmp:tis_strcmp \
-  -val-builtin strlen:tis_strlen \
-  -val-builtin strnlen:tis_strnlen \
-  -val-builtin printf:tis_printf \
-  -val-builtin sprintf:tis_sprintf \
-  -val-builtin snprintf:tis_snprintf \
+  -val-builtin wcscmp:tis_wcscmp \
   -val-builtin strncmp:tis_strncmp \
+  -val-builtin wcsncmp:tis_wcsncmp \
+  -val-builtin strcpy:tis_strcpy \
+  -val-builtin wcscpy:tis_wcscpy \
+  -val-builtin strlen:tis_strlen \
+  -val-builtin wcslen:tis_wcslen \
+  -val-builtin strcat:tis_strcat \
+  -val-builtin wcscat:tis_wcscat \
+  -val-builtin strnlen:tis_strnlen \
+  -val-builtin wcsnlen:tis_wcsnlen \
+  -val-builtin printf:tis_printf \
+  -val-builtin wprintf:tis_wprintf \
+  -val-builtin sprintf:tis_sprintf \
+  -val-builtin asprintf:tis_asprintf_interpreter \
+  -val-builtin snprintf:tis_snprintf \
   -val-builtin fprintf:tis_fprintf \
   -val-builtin strchr:tis_strchr \
-  -val-builtin asprintf:tis_asprintf_interpreter \
+  -val-builtin strtol:tis_strtol_interpreter \
+  -val-builtin strtoul:tis_strtoul_interpreter \
+  -val-builtin strtoll:tis_strtoll_interpreter \
+  -val-builtin strtoull:tis_strtoull_interpreter \
+  -val-builtin atoi:tis_atoi_interpreter \
+  -val-builtin atol:tis_atol_interpreter \
+  -val-builtin atoll:tis_atoll_interpreter \
+  -val-builtin atoq:tis_atoll_interpreter \
+  -val-builtin strtof:tis_strtof_interpreter \
+  -val-builtin strtod:tis_strtod_interpreter \
+  -val-builtin atof:tis_atof_interpreter \
   -val-builtin sscanf:tis_sscanf \
+  -val-builtin scanf:tis_scanf \
 "
 
 local options_interpreter_only="\
@@ -93,7 +117,7 @@ local common_files="\
   $ROOT_PATH/common_helpers/common_time.c"
 
 local compiler=cc
-local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -dD -DTIS_INTERPRETER"
+local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -dD -DTIS_INTERPRETER -D__FC_MACHDEP_X86_64"
 
 local others=""
 
@@ -125,24 +149,23 @@ local final_compiler="$compiler $compiler_opts"
 
 if [ "Q$preprocess_only" = "Q1" ];
 then
-    local SPECIAL_CONF="-D__FC_MACHDEP_X86_64"
     for file in $others;
     do
         case "$file" in
             -*);;
-            *.ci) $final_compiler $SPECIAL_CONF ${file%.ci}.c > $file;;
-            *.c)  $final_compiler $SPECIAL_CONF $file > ${file%.c}.ci;;
+            *.ci) $final_compiler ${file%.ci}.c > $file;;
+            *.c)  $final_compiler $file > ${file%.c}.ci;;
             *)    echo Unknown file.
         esac
     done
 else
     if [ "Q$gui" = "Q1" ];
     then
-	    options="$options $options_gui_only"
+            options="$options $options_gui_only"
     else
-	    options="$options $options_interpreter_only"
+            options="$options $options_interpreter_only"
     fi
-    
+
     $frama_c_binary -cpp-command="$final_compiler" \
                           $options $builtins $common_files \
                           $fc_runtime $others
