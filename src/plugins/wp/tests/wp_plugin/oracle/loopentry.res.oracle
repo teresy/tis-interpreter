@@ -1,0 +1,59 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_plugin/loopentry.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+tests/wp_plugin/loopentry.i:12:[wp] warning: Missing assigns clause (assigns 'everything' instead)
+------------------------------------------------------------
+  Function f
+------------------------------------------------------------
+
+Goal Preservation of Invariant (file tests/wp_plugin/loopentry.i, line 9):
+Let x = n + r.
+Assume {
+  Type: is_sint32(n) /\ is_sint32(r) /\ is_sint32(x) /\ is_sint32(n + r - p).
+  (* Pre-condition *)
+  Have: 0 < x.
+  (* Then *)
+  Have: 0 != n.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Establishment of Invariant (file tests/wp_plugin/loopentry.i, line 9):
+Assume {
+  Type: is_sint32(n) /\ is_sint32(n - p).
+  (* Pre-condition *)
+  Have: 0 < n.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Preservation of Invariant (file tests/wp_plugin/loopentry.i, line 10):
+Let x = n + p.
+Let x_1 = -r.
+Assume {
+  Type: is_sint32(n) /\ is_sint32(p) /\ is_sint32(r) /\ is_sint32(1 + r) /\
+      is_sint32(x) /\ is_sint32(n + p - r) /\ is_sint32(n + p - 1 - r).
+  (* Pre-condition *)
+  Have: 0 < x.
+  (* Then *)
+  Have: r != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Establishment of Invariant (file tests/wp_plugin/loopentry.i, line 10):
+Assume {
+  Type: is_sint32(n) /\ is_sint32(n - p).
+  (* Pre-condition *)
+  Have: 0 < n.
+}
+Prove: true.
+
+------------------------------------------------------------

@@ -1,0 +1,44 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_bts/bts_1586.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function compute_bizarre with behavior Bizarre
+------------------------------------------------------------
+
+Goal Post-condition for 'Bizarre' 'TRANS' in 'compute_bizarre':
+Assume { Type: is_sint32(x). (* Goal *) When: 0 != x. }
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function compute_normal with behavior Normal
+------------------------------------------------------------
+
+Goal Post-condition for 'Normal' 'TRANS' in 'compute_normal':
+Assume { Type: is_sint32(x). (* Pre-condition for 'Normal' *) Have: 0 != x. }
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function main_bizarre_KO
+------------------------------------------------------------
+
+Goal Assertion 'FALSE' (file tests/wp_bts/bts_1586.i, line 32):
+Tags: Case 0.
+Prove: false.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function main_normal_KO
+------------------------------------------------------------
+
+Goal Assertion 'FALSE' (file tests/wp_bts/bts_1586.i, line 47):
+Tags: Case 0.
+Assume { Type: is_sint32(x). (* Call 'compute_normal' *) Have: 0 != x. }
+Prove: false.
+
+------------------------------------------------------------

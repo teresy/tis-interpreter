@@ -1,0 +1,177 @@
+# frama-c -wp -wp-model 'Typed (Caveat)' [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_usage/caveat2.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function job
+------------------------------------------------------------
+
+Goal Post-condition 'N' in 'job':
+Let x = p.F1_S_n.
+Assume {
+  Type: is_sint32(i) /\ is_sint32(x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+  (* Invariant *)
+  Have: forall i_1 : Z. ((i_1 < i) -> ((0 <= i_1) ->
+      ((p.F1_S_a)[i_1] = Mint_0[shift_sint32(global(P_b_73), i_1)]))).
+  (* Invariant *)
+  Have: (0 <= i) /\ (i <= x).
+  (* Else *)
+  Have: x <= i.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition 'A' in 'job':
+Let x = p.F1_S_n.
+Let a = p.F1_S_a.
+Let a_1 = global(P_b_73).
+Assume {
+  Type: is_sint32(i_1) /\ is_sint32(x).
+  (* Goal *)
+  When: (0 <= i) /\ (i < x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+  (* Invariant *)
+  Have: forall i_2 : Z. ((i_2 < i_1) -> ((0 <= i_2) ->
+      (a[i_2] = Mint_0[shift_sint32(a_1, i_2)]))).
+  (* Invariant *)
+  Have: (0 <= i_1) /\ (i_1 <= x).
+  (* Else *)
+  Have: x <= i_1.
+}
+Prove: a[i] = Mint_0[shift_sint32(a_1, i)].
+
+------------------------------------------------------------
+
+Goal Preservation of Invariant (file tests/wp_usage/caveat2.i, line 21):
+Let x = p.F1_S_n.
+Assume {
+  Type: is_sint32(i) /\ is_sint32(x) /\ is_sint32(1 + i).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+  (* Invariant *)
+  Have: forall i_1 : Z. ((i_1 < i) -> ((0 <= i_1) ->
+      ((p.F1_S_a)[i_1] = Mint_0[shift_sint32(global(P_b_73), i_1)]))).
+  (* Invariant *)
+  Have: (0 <= i) /\ (i <= x).
+  (* Then *)
+  Have: i < x.
+}
+Prove: (-1) <= i.
+
+------------------------------------------------------------
+
+Goal Establishment of Invariant (file tests/wp_usage/caveat2.i, line 21):
+Assume {
+  Type: is_sint32(n).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= n) /\ (n <= 3).
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Preservation of Invariant (file tests/wp_usage/caveat2.i, line 22):
+Let x = p.F1_S_n.
+Let a = p.F1_S_a.
+Let a_1 = global(P_b_73).
+Assume {
+  Type: is_sint32(i_1) /\ is_sint32(x) /\ is_sint32(1 + i_1).
+  (* Goal *)
+  When: (0 <= i) /\ (i <= i_1).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+  (* Invariant *)
+  Have: forall i_2 : Z. ((i_2 < i_1) -> ((0 <= i_2) ->
+      (a[i_2] = Mint_0[shift_sint32(a_1, i_2)]))).
+  (* Invariant *)
+  Have: (0 <= i_1) /\ (i_1 <= x).
+  (* Then *)
+  Have: i_1 < x.
+}
+Prove: Mint_0[shift_sint32(a_1, i)] =
+    a[i_1 <- Mint_0[shift_sint32(a_1, i_1)]][i].
+
+------------------------------------------------------------
+
+Goal Establishment of Invariant (file tests/wp_usage/caveat2.i, line 22):
+Assume { (* Goal *) When: false. }
+Prove: (p.F1_S_a)[i] = Mint_0[shift_sint32(global(P_b_73), i)].
+
+------------------------------------------------------------
+
+Goal Loop assigns (file tests/wp_usage/caveat2.i, line 23) (1/2):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Loop assigns (file tests/wp_usage/caveat2.i, line 23) (2/2):
+Effect at line 25
+Let x = p.F1_S_n.
+Assume {
+  Type: is_sint32(i) /\ is_sint32(x).
+  (* Goal *)
+  When: (0 <= i) /\ (i <= 3).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+  (* Invariant *)
+  Have: forall i_1 : Z. ((i_1 < i) -> ((0 <= i_1) ->
+      ((p.F1_S_a)[i_1] = Mint_0[shift_sint32(global(P_b_73), i_1)]))).
+  (* Invariant *)
+  Have: i <= x.
+  (* Then *)
+  Have: i < x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assigns (file tests/wp_usage/caveat2.i, line 15) in 'job' (1/3):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assigns (file tests/wp_usage/caveat2.i, line 15) in 'job' (2/3):
+Effect at line 25
+Assume {
+  Type: is_sint32(n).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= n) /\ (n <= 3).
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assigns (file tests/wp_usage/caveat2.i, line 15) in 'job' (3/3):
+Effect at line 25
+Let x = p.F1_S_n.
+Assume {
+  Type: is_sint32(x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  (* Pre-condition *)
+  Have: (0 <= x) /\ (x <= 3).
+}
+Prove: true.
+
+------------------------------------------------------------

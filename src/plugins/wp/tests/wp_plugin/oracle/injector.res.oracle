@@ -1,0 +1,215 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_plugin/injector.c (with preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function f
+------------------------------------------------------------
+
+Goal Instance of 'Pre-condition (file tests/wp_plugin/injector.c, line 13) in 'g'' in 'f' at call 'g' (file tests/wp_plugin/injector.c, line 54)
+:
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Instance of 'Pre-condition (file tests/wp_plugin/injector.c, line 13) in 'g'' in 'f' at call 'g' (file tests/wp_plugin/injector.c, line 56)
+:
+Assume { Type: is_sint32(out_0[k]). (* Call 'g' *) Have: 33 = out_0[0]. }
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f with behavior FST_FAIL
+------------------------------------------------------------
+
+Goal Post-condition for 'FST_FAIL' 'qed_ok' in 'f':
+Let x = out_0[0].
+Assume {
+  Type: is_sint32(x) /\ is_sint32(out_0[k]).
+  (* Pre-condition for 'FST_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'FST_FAIL' 'qed_ok' in 'f':
+Let x = out_0[0].
+Assume {
+  Type: is_sint32(x) /\ is_sint32(out_0[k]).
+  (* Pre-condition for 'FST_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'FST_FAIL' 'qed_ok' in 'f':
+Let x = out_0[0].
+Assume {
+  Type: is_sint32(x) /\ is_sint32(out_0[k]).
+  (* Pre-condition for 'FST_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f with behavior SND_FAIL
+------------------------------------------------------------
+
+Goal Post-condition for 'SND_FAIL' 'qed_ok' in 'f':
+Let x = out_0[1].
+Assume {
+  Type: is_sint32(x).
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SND_FAIL' 'qed_ok' in 'f':
+Let x = out_0[1].
+Assume {
+  Type: is_sint32(x).
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SND_FAIL' 'qed_ok' in 'f':
+Let x = out_0[1].
+Assume {
+  Type: is_sint32(x).
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SND_FAIL' 'qed_ok' in 'f':
+Let x = out_0[1].
+Assume {
+  Type: is_sint32(x).
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SND_FAIL' *)
+  Have: 33 != x.
+}
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f with behavior SUCCESS
+------------------------------------------------------------
+
+Goal Post-condition for 'SUCCESS' 'qed_ok' in 'f':
+Assume {
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[1].
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SUCCESS' 'qed_ok' in 'f':
+Assume {
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[1].
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SUCCESS' 'qed_ok' in 'f':
+Assume {
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[1].
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'SUCCESS' 'qed_ok' in 'f':
+Assume {
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'SUCCESS' *)
+  Have: 33 = out_0[1].
+}
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f with behavior ko
+------------------------------------------------------------
+
+Goal Post-condition for 'ko' 'qed_ko' in 'f':
+Let x = out_0[0].
+Let x_1 = inp_0[0].
+Assume {
+  Type: is_sint32(b) /\ is_sint32(v) /\ is_sint32(x_1) /\
+      is_sint32(inp_0[k]) /\ is_sint32(x) /\ is_sint32(out_0[k]).
+  If 33 != x
+  Then { Have: inp_0 = inp_1[0 <- v]. }
+  Else { (* Call Effects *) Have: inp_0 = inp_1[0 <- v][1 <- b]. }
+}
+Prove: b = x_1.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f with behavior ko_1
+------------------------------------------------------------
+
+Goal Post-condition for 'ko_1' 'qed_ko' in 'f':
+Assume {
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[1].
+}
+Prove: false.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'ko_1' 'qed_ko' in 'f':
+Assume {
+  Type: is_sint32(v) /\ is_sint32(v_1).
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[1].
+}
+Prove: v = v_1.
+
+------------------------------------------------------------
+
+Goal Post-condition for 'ko_1' 'qed_ko' in 'f':
+Assume {
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[0].
+  (* Pre-condition for 'ko_1' *)
+  Have: 33 = out_0[1].
+}
+Prove: false.
+
+------------------------------------------------------------

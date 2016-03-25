@@ -1,0 +1,107 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_bts/bts_1601.c (with preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function foo
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 72):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 84):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 104):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 136):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 147):
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 153):
+Assume {
+  Type: is_float32(fCaValue_0) /\ is_float32(mfAp_0) /\
+      is_float32(mfNewAp_0) /\ is_uint8(RESP_STATE_0) /\
+      is_uint8(bApAlmC_0) /\ is_uint8(bRAp_0) /\ is_uint8(gbCaMStatus_0) /\
+      is_uint8(gbCaaStatus_0) /\ is_uint8(mnPb_0) /\ is_uint16(F_MIN_R_0) /\
+      is_uint16(nApLRL_0) /\ is_uint16(nCaLRL_0).
+  If 1 = mnPb_0
+  Then { Have: mfAp_0 = real_of_int(RESP_STATE_0). }
+  If real_of_int(F_MIN_R_0) <= mfAp_0
+  Then {
+    If 1 = gbCaMStatus_0
+    Then {
+      If 0 = gbCaaStatus_0
+      Then { Have: 1 = bApAlmC_0. }
+      Else { Have: 0 = bApAlmC_0. }
+    }
+    Else { Have: 0 = bApAlmC_0. }
+  }
+  Else { Have: 0 = bApAlmC_0. }
+  If 1 = bApAlmC_0
+  Then {
+    If real_of_int(nCaLRL_0) <= fCaValue_0
+    Then {
+      If mfNewAp_0 <= mfAp_0
+      Then { Have: 1 = bRAp_0. }
+      Else { Have: 0 = bRAp_0. }
+    }
+    Else { Have: 0 = bRAp_0. }
+  }
+  Else { Have: 0 = bRAp_0. }
+  If real_of_int(nApLRL_0) <= mfAp_0
+  Else {
+    If 1 = bApAlmC_0
+    Then {
+      If fCaValue_0 < real_of_int(nCaLRL_0)
+      Else {
+        (* Then *)
+        Have: 1 = bRAp_0.
+        (* Then *)
+        Have: 1 = gbCaMStatus_0.
+        (* Then *)
+        Have: 0 = gbCaaStatus_0.
+      }
+    }
+    Else {
+      (* Then *)
+      Have: 1 = bRAp_0.
+      (* Then *)
+      Have: 1 = gbCaMStatus_0.
+      (* Then *)
+      Have: 0 = gbCaaStatus_0.
+    }
+  }
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_1601.c, line 157):
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function foo with behavior basic
+------------------------------------------------------------
+
+Goal Post-condition for 'basic' (file tests/wp_bts/bts_1601.c, line 46) in 'foo':
+Prove: true.
+
+------------------------------------------------------------

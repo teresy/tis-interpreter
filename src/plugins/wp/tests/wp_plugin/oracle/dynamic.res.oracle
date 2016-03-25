@@ -1,0 +1,92 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_plugin/dynamic.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Computing dynamic calls.
+[wp] Dynamic call(s): 1.
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function call
+------------------------------------------------------------
+
+Goal calls f1 f2 in 'call' at instruction (file tests/wp_plugin/dynamic.i, line 30):
+Let a = Mptr_0[shiftfield_F1_S_f(closure_0)].
+Let a_1 = shift_PTR(global(G_f2_75), 0).
+Let a_2 = shift_PTR(global(G_f1_69), 0).
+Let x = Mint_0[shiftfield_F1_S_param(closure_0)].
+Assume {
+  Type: is_sint32(Mint_0[shiftfield_F1_S_param(closure_1)]) /\
+      is_sint32(Mint_0[shiftfield_F1_S_param(closure_2)]) /\ is_sint32(x).
+  (* Heap *)
+  Have: framed(Mptr_0) /\ (region(closure_0.base) <= 0).
+  (* Pre-condition *)
+  Have: (a = a_1) \/ ((a = a_2) /\ (abs_int(x) <= 5)).
+}
+Prove: (a = a_2) \/ (a = a_1).
+
+------------------------------------------------------------
+
+Goal Post-condition (file tests/wp_plugin/dynamic.i, line 26) in 'call' (1/2):
+Tags: Call f1.
+Let x = Mint_0[shiftfield_F1_S_param(closure_0)].
+Let a = Mptr_0[shiftfield_F1_S_f(closure_0)].
+Let a_1 = shift_PTR(global(G_f1_69), 0).
+Assume {
+  Type: is_sint32(x) /\
+      is_sint32(Mint_0[shiftfield_F1_S_param(closure_1)]) /\
+      is_sint32(1 + x).
+  (* Heap *)
+  Have: framed(Mptr_0) /\ (region(closure_0.base) <= 0).
+  (* Pre-condition *)
+  Have: (a = shift_PTR(global(G_f2_75), 0)) \/
+      ((a = a_1) /\ (abs_int(x) <= 5)).
+  (* Instance of 'f1' *)
+  Have: a = a_1.
+  (* Call 'f1' *)
+  Have: ((-10) <= x) /\ (x <= 10).
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition (file tests/wp_plugin/dynamic.i, line 26) in 'call' (2/2):
+Tags: Call f2.
+Let a = Mptr_0[shiftfield_F1_S_f(closure_1)].
+Let a_1 = shift_PTR(global(G_f2_75), 0).
+Let x = Mint_0[shiftfield_F1_S_param(closure_1)].
+Assume {
+  Type: is_sint32(Mint_0[shiftfield_F1_S_param(closure_0)]) /\
+      is_sint32(x) /\ is_sint32(x - 1).
+  (* Heap *)
+  Have: framed(Mptr_0) /\ (region(closure_1.base) <= 0).
+  (* Pre-condition *)
+  Have: (a = a_1) \/
+      ((a = shift_PTR(global(G_f1_69), 0)) /\ (abs_int(x) <= 5)).
+  (* Instance of 'f2' *)
+  Have: a = a_1.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Instance of 'Pre-condition (file tests/wp_plugin/dynamic.i, line 10) in 'f1'' in 'call' at instruction (file tests/wp_plugin/dynamic.i, line 30)
+:
+Tags: Call f1.
+Let a = Mptr_0[shiftfield_F1_S_f(closure_0)].
+Let a_1 = shift_PTR(global(G_f1_69), 0).
+Let x = Mint_0[shiftfield_F1_S_param(closure_0)].
+Assume {
+  Type: is_sint32(x) /\ is_sint32(Mint_0[shiftfield_F1_S_param(closure_1)]).
+  (* Heap *)
+  Have: framed(Mptr_0) /\ (region(closure_0.base) <= 0).
+  (* Pre-condition *)
+  Have: (a = shift_PTR(global(G_f2_75), 0)) \/
+      ((a = a_1) /\ (abs_int(x) <= 5)).
+  (* Instance of 'f1' *)
+  Have: a = a_1.
+}
+Prove: ((-10) <= x) /\ (x <= 10).
+
+------------------------------------------------------------

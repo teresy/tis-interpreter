@@ -1,0 +1,184 @@
+# frama-c -wp -wp-model 'Typed (Ref)' [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_acsl/funvar_inv.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+[wp] Collecting variable usage
+------------------------------------------------------------
+  Function f
+------------------------------------------------------------
+
+Goal Post-condition 'P_startof' in 'f':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Assume {
+  Type: is_sint32(v) /\ is_sint32(Mint_0[shift_sint32(a, 1)]).
+  (* Goal *)
+  When: 0 = Mint_0[shift_sint32(a, 0)].
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If v <= 3
+  Then {
+    Let a_1 = shift_sint32(a, v).
+    (* Else *)
+    Have: 0 = Mint_0[a_1].
+    Have: f = a_1.
+  }
+  Else { Have: f = shift_sint32(global(L_i_72), 0). }
+}
+Prove: f = a.
+
+------------------------------------------------------------
+
+Goal Post-condition 'P_addr' in 'f':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Let a_1 = shift_sint32(a, 1).
+Let x = Mint_0[shift_sint32(a, 0)].
+Assume {
+  Type: is_sint32(v) /\ is_sint32(x).
+  (* Goal *)
+  When: (0 = Mint_0[a_1]) /\ (0 != x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If v <= 3
+  Then {
+    Let a_2 = shift_sint32(a, v).
+    (* Else *)
+    Have: 0 = Mint_0[a_2].
+    Have: f = a_2.
+  }
+  Else { Have: f = shift_sint32(global(L_i_72), 0). }
+}
+Prove: f = a_1.
+
+------------------------------------------------------------
+
+Goal Loop assigns 'qed_ok,index':
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function f2
+------------------------------------------------------------
+
+Goal Post-condition 'P_startof_shift' in 'f2':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Assume {
+  Type: is_sint32(v) /\ is_sint32(Mint_0[shift_sint32(a, 1)]).
+  (* Goal *)
+  When: 0 = Mint_0[shift_sint32(a, 0)].
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If (4 * v) <= 15
+  Then {
+    (* Else *)
+    Have: 0 = Mint_0[shift_sint32(a, v)].
+    If 4 <= v
+    Then { Have: f2_0 = shift_sint32(global(L_i_77), 0). }
+    Else { Have: f2_0 = shift_sint32(a, v). }
+  }
+  Else {
+    If 4 <= v
+    Then { Have: f2_0 = shift_sint32(global(L_i_77), 0). }
+    Else { Have: f2_0 = shift_sint32(a, v). }
+  }
+}
+Prove: f2_0 = a.
+
+------------------------------------------------------------
+
+Goal Post-condition 'P_addr_shift' in 'f2':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Let a_1 = shift_sint32(a, 1).
+Let x = Mint_0[shift_sint32(a, 0)].
+Assume {
+  Type: is_sint32(v) /\ is_sint32(x).
+  (* Goal *)
+  When: (0 = Mint_0[a_1]) /\ (0 != x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If (4 * v) <= 15
+  Then {
+    (* Else *)
+    Have: 0 = Mint_0[shift_sint32(a, v)].
+    If 4 <= v
+    Then { Have: f2_0 = shift_sint32(global(L_i_77), 0). }
+    Else { Have: f2_0 = shift_sint32(a, v). }
+  }
+  Else {
+    If 4 <= v
+    Then { Have: f2_0 = shift_sint32(global(L_i_77), 0). }
+    Else { Have: f2_0 = shift_sint32(a, v). }
+  }
+}
+Prove: f2_0 = a_1.
+
+------------------------------------------------------------
+
+Goal Loop assigns 'qed_ok,index':
+Prove: true.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function g
+------------------------------------------------------------
+
+Goal Post-condition 'P_addr_startof_shift' in 'g':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Assume {
+  Type: is_sint32(v) /\ is_sint32(Mint_0[shift_sint32(a, 1)]).
+  (* Goal *)
+  When: 0 = Mint_0[shift_sint32(a, 0)].
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If (16 * v) <= 63
+  Then {
+    (* Else *)
+    Have: 0 = Mint_0[shift_sint32(a, v)].
+    If 4 <= v
+    Then { Have: g = shift_sint32(global(L_i_82), 0). }
+    Else { Have: g = shift_sint32(a, v). }
+  }
+  Else {
+    If 4 <= v
+    Then { Have: g = shift_sint32(global(L_i_82), 0). }
+    Else { Have: g = shift_sint32(a, v). }
+  }
+}
+Prove: g = a.
+
+------------------------------------------------------------
+
+Goal Post-condition 'P_addr_addr_shift' in 'g':
+Let a = shift_A4_sint32(global(G_G_67), 0).
+Let a_1 = shift_sint32(a, 1).
+Let x = Mint_0[shift_sint32(a, 0)].
+Assume {
+  Type: is_sint32(v) /\ is_sint32(x).
+  (* Goal *)
+  When: (0 = Mint_0[a_1]) /\ (0 != x).
+  (* Heap *)
+  Have: linked(Malloc_0).
+  If (16 * v) <= 63
+  Then {
+    (* Else *)
+    Have: 0 = Mint_0[shift_sint32(a, v)].
+    If 4 <= v
+    Then { Have: g = shift_sint32(global(L_i_82), 0). }
+    Else { Have: g = shift_sint32(a, v). }
+  }
+  Else {
+    If 4 <= v
+    Then { Have: g = shift_sint32(global(L_i_82), 0). }
+    Else { Have: g = shift_sint32(a, v). }
+  }
+}
+Prove: g = a_1.
+
+------------------------------------------------------------
+
+Goal Loop assigns 'qed_ok':
+Prove: true.
+
+------------------------------------------------------------

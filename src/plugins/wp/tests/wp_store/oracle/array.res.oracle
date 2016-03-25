@@ -1,0 +1,34 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_store/array.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function g
+------------------------------------------------------------
+
+Goal Post-condition 'P_startof,qed_ok' in 'g':
+Assume {
+  Type: is_sint32(i) /\ is_sint32(j).
+  (* Goal *)
+  When: i < j.
+  (* Pre-condition *)
+  Have: (0 <= i) /\ (0 <= j) /\ (i <= 3) /\ (j <= 3).
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition 'P_addr_shift,qed_ok' in 'g':
+Assume {
+  Type: is_sint32(i) /\ is_sint32(j).
+  (* Goal *)
+  When: j <= i.
+  (* Pre-condition *)
+  Have: (0 <= i) /\ (0 <= j) /\ (i <= 3) /\ (j <= 3).
+}
+Prove: true.
+
+------------------------------------------------------------

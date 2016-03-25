@@ -1,0 +1,49 @@
+# frama-c -wp -wp-model 'Typed (Ref)' [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_bts/bts788.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+[wp] Collecting variable usage
+------------------------------------------------------------
+  Function main
+------------------------------------------------------------
+
+Goal Post-condition 'I0' in 'main':
+Assume {
+  Type: is_sint32(t20_0[1]) /\ is_sint32(t20_0[2]).
+  (* Initializer *)
+  Init: 3 = t20_0[0].
+  (* Initializer *)
+  Init: forall i : Z. ((0 < i) -> ((i <= 19) -> (0 = t20_0[i]))).
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Post-condition 'I1' in 'main':
+Let x = t20_0[1].
+Assume {
+  Type: is_sint32(x) /\ is_sint32(t20_0[2]).
+  (* Initializer *)
+  Init: 3 = t20_0[0].
+  (* Initializer *)
+  Init: forall i : Z. ((0 < i) -> ((i <= 19) -> (0 = t20_0[i]))).
+}
+Prove: 0 = x.
+
+------------------------------------------------------------
+
+Goal Post-condition 'I2' in 'main':
+Let x = t20_0[2].
+Assume {
+  Type: is_sint32(t20_0[1]) /\ is_sint32(x).
+  (* Initializer *)
+  Init: 3 = t20_0[0].
+  (* Initializer *)
+  Init: forall i : Z. ((0 < i) -> ((i <= 19) -> (0 = t20_0[i]))).
+}
+Prove: 0 = x.
+
+------------------------------------------------------------

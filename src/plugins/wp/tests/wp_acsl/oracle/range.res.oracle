@@ -1,0 +1,61 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_acsl/range.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function test
+------------------------------------------------------------
+
+Goal Post-condition 'P1,ok' in 'test':
+Assume { (* Goal *) When: false. }
+Prove: (((11 + b) <= d) \/ ((11 + d) <= b)) /\
+    valid_rw(Malloc_0, shift_sint32(r, b - 10), 11 + d - b).
+
+------------------------------------------------------------
+
+Goal Post-condition 'P2,ok' in 'test':
+Assume { (* Goal *) When: false. }
+Prove: (((11 + b) <= d) \/ ((11 + d) <= b)) /\
+    valid_rw(Malloc_0, shift_sint32(r, d - 10), 11 + b - d).
+
+------------------------------------------------------------
+
+Goal Instance of 'Pre-condition 'HP,ok' in 'val_assigns_p'' in 'test' at call 'val_assigns_p' (file tests/wp_acsl/range.i, line 32)
+:
+Assume {
+  Type: is_sint32(b) /\ is_sint32(d) /\ is_sint32(b - 10) /\
+      is_sint32(d - 10).
+  (* Heap *)
+  Have: linked(Malloc_0) /\ (region(r.base) <= 0).
+  (* Pre-condition 'H1' *)
+  Have: 10 <= b.
+  (* Pre-condition 'H2' *)
+  Have: 10 <= d.
+}
+Prove: true.
+
+------------------------------------------------------------
+
+Goal Instance of 'Pre-condition 'HQ,ok' in 'val_assigns_q'' in 'test' at call 'val_assigns_q' (file tests/wp_acsl/range.i, line 33)
+:
+Let x = b - 10.
+Let a = shift_sint32(r, x).
+Assume {
+  Type: is_sint32(b) /\ is_sint32(d) /\ is_sint32(x) /\ is_sint32(d - 10).
+  (* Heap *)
+  Have: linked(Malloc_0) /\ (region(r.base) <= 0).
+  (* Pre-condition 'H1' *)
+  Have: 10 <= b.
+  (* Pre-condition 'H2' *)
+  Have: 10 <= d.
+  (* Call 'val_assigns_p' *)
+  Have: valid_rw(Malloc_0, a, 11).
+  (* Call Effects *)
+  Have: havoc(Mint_0, Mint_1, a, 11).
+}
+Prove: true.
+
+------------------------------------------------------------

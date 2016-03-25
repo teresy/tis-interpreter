@@ -1,0 +1,16 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_bts/bts_2040.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function call
+------------------------------------------------------------
+
+Goal Assertion (file tests/wp_bts/bts_2040.i, line 17):
+Assume { Type: is_sint32(B). (* Call 'job' *) Have: 0 < B. }
+Prove: true.
+
+------------------------------------------------------------

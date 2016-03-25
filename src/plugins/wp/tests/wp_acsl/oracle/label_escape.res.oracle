@@ -1,0 +1,25 @@
+# frama-c -wp [...]
+[kernel] Parsing FRAMAC_SHARE/libc/__fc_builtin_for_normalization.i (no preprocessing)
+[kernel] Parsing tests/wp_acsl/label_escape.i (no preprocessing)
+[wp] Running WP plugin...
+[wp] Loading driver 'share/wp.driver'
+[wp] Collecting axiomatic usage
+[wp] warning: Missing RTE guards
+------------------------------------------------------------
+  Function f
+------------------------------------------------------------
+
+Goal Assertion 'qed_ko,oracle_ko' (file tests/wp_acsl/label_escape.i, line 12):
+Assume { Type: is_sint32(x) /\ is_sint32(y). If 0 != x Else { Have: 1 = y. }
+}
+Prove: 0 = y.
+
+------------------------------------------------------------
+------------------------------------------------------------
+  Function g
+------------------------------------------------------------
+
+Goal Assertion 'qed_ok,ok' (file tests/wp_acsl/label_escape.i, line 25):
+Prove: true.
+
+------------------------------------------------------------
