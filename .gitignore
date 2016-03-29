@@ -17,3 +17,26 @@ share/frama-c.rc
 *.check_mli_exists
 bin/*
 
+*.tar.gz
+
+doc/code/docgen.ml
+lib/
+src/kernel_internals/parsing/clexer.ml
+src/kernel_internals/parsing/cparser.ml
+src/kernel_internals/parsing/cparser.mli
+src/kernel_internals/parsing/logic_lexer.ml
+src/kernel_internals/parsing/logic_parser.ml
+src/kernel_internals/parsing/logic_parser.mli
+src/kernel_internals/parsing/logic_preprocess.ml
+src/kernel_internals/runtime/config.ml
+src/kernel_internals/runtime/frama_c_config.ml
+src/libraries/stdlib/FCDynlink.ml
+src/libraries/stdlib/integer.ml
+src/libraries/utils/json.ml
+src/plugins/aorai/Makefile
+src/plugins/obfuscator/Makefile
+src/plugins/report/Makefile
+src/plugins/security_slicing/Makefile
+src/plugins/wp/Makefile
+tis-interpreter/tis-interpreter/
+
