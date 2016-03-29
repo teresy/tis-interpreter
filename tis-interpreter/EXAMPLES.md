@@ -52,7 +52,7 @@ be run. To run this example, we are going to need:
 Use the command:
 
 ```
-tis-interpreter$ ./tis-interpreter.sh --cc "-Ifilesystem"  examples/03_filesystem/*.c filesystem/*.c              
+tis-interpreter$ ./tis-interpreter.sh --cc "-Ifilesystem"  examples/03_filesystem/*.c filesystem/*.c
 ```
 
 Once the execution per se starts, you should see:
