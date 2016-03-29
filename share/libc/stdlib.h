@@ -64,6 +64,9 @@ long int atol(const char *nptr);
 /*@ assigns \result \from nptr[..] ; */
 long long int atoll(const char *nptr);
 
+/*@ assigns \result \from nptr[..] ; */
+long long int atoq(const char *nptr);
+
 /* See ISO C: 7.20.1.3 to complete these specifications */
 
 /*@ assigns \result \from nptr[0..]; 

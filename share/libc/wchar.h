@@ -37,18 +37,23 @@ wchar_t * wmemchr(const wchar_t *s, wchar_t c, size_t n);
 
 int wmemcmp(const wchar_t *s1, const wchar_t *s2, size_t n);
 
+/*@ assigns s1[..] \from s2[..], n ; */
 wchar_t * wmemcpy(wchar_t * s1, const wchar_t * s2, size_t n);
 
+/*@ assigns s1[..] \from s2[..], n ; */
 wchar_t * wmemmove(wchar_t *s1, const wchar_t *s2, size_t n);
 
 wchar_t * wmemset(wchar_t *s, wchar_t c, size_t n);
 
+/*@ assigns s1[..] \from s2[..]; */
 wchar_t * wcscat(wchar_t * s1, const wchar_t * s2);
 
 wchar_t * wcschr(const wchar_t *s, wchar_t c);
 
+/*@ assigns \result \from s1[..], s2[..]; */
 int wcscmp(const wchar_t *s1, const wchar_t *s2);
 
+/*@ assigns s1[..] \from s2[..]; */
 wchar_t * wcscpy(wchar_t * s1, const wchar_t * s2);
 
 size_t wcscspn(const wchar_t *s1, const wchar_t *s2);
@@ -57,10 +62,15 @@ size_t wcslcat(wchar_t *s1, const wchar_t *s2, size_t n);
 
 size_t wcslcpy(wchar_t *s1, const wchar_t *s2, size_t n);
 
-size_t wcslen(const wchar_t *s);
+/*@ assigns \result \from str[..]; */
+size_t wcslen(const wchar_t *str);
+
+/*@ assigns \result \from str[..], len; */
+size_t wcsnlen(const wchar_t *str, size_t len);
 
 wchar_t * wcsncat(wchar_t * s1, const wchar_t * s2, size_t n);
 
+/*@ assigns \result \from s1[..], s2[..], n; */
 int wcsncmp(const wchar_t *s1, const wchar_t * s2, size_t n);
 
 wchar_t * wcsncpy(wchar_t * s1, const wchar_t * s2, size_t n);
@@ -80,6 +90,7 @@ int fwprintf(FILE * stream, const wchar_t * format, ...);
 
 int swprintf(wchar_t * ws, size_t n, const wchar_t * format, ...);
 
+/*@ assigns \result \from format; // ... */
 int wprintf(const wchar_t * format, ...);
 
 
