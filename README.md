@@ -18,4 +18,4 @@ problem.
 At this stage, the best uses for tis-interpreter are pure C libraries with
 as few dependencies as possible and existing tests. After compilation
 (or after downloading a soon-to-be-available binary package), you can
-experiment with examples of increasing difficulty in tis-interpreter/examples.
+experiment with [examples of increasing difficulty](https://github.com/TrustInSoft/tis-interpreter/blob/master/tis-interpreter/EXAMPLES).
