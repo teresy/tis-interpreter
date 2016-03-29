@@ -44,28 +44,6 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
   return 0;
 }
 
-#ifndef TIS_MKFS
-size_t fwrite(const void *ptr, size_t size, size_t nmemb,
-                     FILE *stream) {
-  return nmemb;
-}
-int puts(const char *s) {
-  return printf ("TIS puts: %s", s);
-}
-int fputs(const char *s, FILE *stream) {
-  return printf ("TIS fputs: %s", s);
-}
-
-int putc (int c, FILE *stream) {
-  printf ("TIS putc: %c", c);
-  return (unsigned char) c;
-}
-
-int fflush(FILE *stream) {
-  return 0;
-}
-#endif
-
 void exit(int status) {
 }
 
