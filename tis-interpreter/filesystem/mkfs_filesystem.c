@@ -5,32 +5,16 @@
 struct dirent fc_dir_dot = {0, 0, 0, 0, {46, 0}};
 struct dirent fc_dir_dot_dot = {0, 0, 0, 0, {46, 46, 0}};
 
-extern unsigned long input_length;
 /* inode of 'input' */
-struct stat fc_inode_1 = {
-  0,  /* ID of device containing file */
-  1,  /* inode number */
-  S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH,  /* t_mode = kind + protection */
-  1,  /* number of hard links */
-  TIS_FILE_UID,  /* user ID of owner */
-  TIS_FILE_GID,  /* group ID of owner */
-  0,  /* device ID (if special file) */
-  input_length,  /* total size, in bytes */
-  0,  /* time of last access */
-  0,  /* time of last modification */
-  0,  /* time of last status change */
-  1,  /* st_blksize field */
-  1  /* st_blocks field */
-};
-/* Contents of file 'input' */
-extern unsigned char fc_file_contents_1_array[];
+extern struct stat fc_inode_input;
+extern unsigned char fc_file_contents_input_array[];
 
 unsigned char * fc_file_contents_1 (void) {
-  return fc_file_contents_1_array;
+  return fc_file_contents_input_array;
 }
 /* List of files */
 struct __fc_fs_file __fc_fs_files[16] = {
-  {"input", &fc_inode_1, &fc_file_contents_1},
+  {"input", &fc_inode_input, &fc_file_contents_1},
 };
 int __fc_fs_files_nb = 1;
 int __fc_fs_files_nb_max = 16;

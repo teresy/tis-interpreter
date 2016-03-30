@@ -95,6 +95,7 @@ local options_gui_only="-server -slevel 10000000"
 
 local options="\
   -val \
+  -warn-decimal-float none \
   -unspecified-access \
   -val-malloc-plevel 10000 \
   -val-slevel-merge-after-loop=-@all \
@@ -117,7 +118,7 @@ local common_files="\
   $ROOT_PATH/common_helpers/common_time.c"
 
 local compiler=cc
-local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -dD -DTIS_INTERPRETER -D__FC_MACHDEP_X86_64"
+local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -I $ROOT_PATH/filesystem -dD -DTIS_INTERPRETER -D__FC_MACHDEP_X86_64"
 
 local others=""
 

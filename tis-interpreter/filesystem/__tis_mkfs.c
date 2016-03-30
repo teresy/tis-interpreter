@@ -33,6 +33,9 @@ struct stat * __tis_mk_inode (int mode) {
   st->st_uid = __tis_uid;
   st->st_gid = __tis_gid;
   st->st_size = 0;
+  st->st_nlink = 1;
+  st->st_dev = __TIS_MKFS_ST_DEV;
+  st->st_blksize = __TIS_MKFS_BLKSIZE;
   return st;
 }
 
@@ -50,6 +53,7 @@ void __tis_init_fd_file (FILE * f, int fd, int kind, int flags,
 
 struct __fc_fs_file __fc_fs_stdin, __fc_fs_stdout, __fc_fs_stderr;
 
+__attribute__((constructor))
 void __tis_mkfs_init_stdio (void) {
   int kind = S_IFCHR;
 
@@ -307,7 +311,7 @@ int __tis_mkfs_access(const char *pathname, int mode) {
     if (mode == F_OK) return 0;
     return __tis_stat_access (&buf_stat, mode); // handle __TIS_MKFS_NO_ERR
   }
-  else { // unknow file or directory
+  else { // unknown file or directory
     Frama_C_make_unknown ((char*)&errno, sizeof (errno));
     return -1;
   }

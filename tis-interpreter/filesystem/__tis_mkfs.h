@@ -65,12 +65,6 @@ struct __tis_socket {
 extern struct __tis_socket __tis_fd_socket[FOPEN_MAX];
 
 //-------------------------------------------------------------------------------
-// MANDATORY: to be called at the begining of the entry point (main)
-// to open standard streams.
-
-void __tis_mkfs_init_stdio (void);
-
-//-------------------------------------------------------------------------------
 // Useful functions for users implementations:
 // all of them return 0 if ok or set errno and return -1 otherwise.
 //-------------------------------------------------------------------------------
@@ -127,5 +121,17 @@ int mkstemp(char *template);
 int link(const char *oldpath, const char *newpath);
 
 int fflush(FILE *stream);
+
+void *mmap(void *addr, size_t length, int prot, int flags,
+	   int fd, off_t offset);
+int munmap(void *addr, size_t length);
+
+#ifndef __TIS_MKFS_BLKSIZE
+#define __TIS_MKFS_BLKSIZE 512
+#endif
+
+#ifndef __TIS_MKFS_ST_DEV
+#define __TIS_MKFS_ST_DEV 88
+#endif
 
 //===============================================================================
