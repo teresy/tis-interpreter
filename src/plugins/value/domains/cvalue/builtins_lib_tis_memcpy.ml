@@ -31,22 +31,6 @@ let dkey = Value_parameters.register_category "imprecision"
 
 open Aux.StringAndArrayUtilities
 
-(** Called by the [memcpy] builtin. Warns when the offsetmap contains
-    an indterminate value, when the imprecision category is enabled *)
-let memcpy_check_indeterminate_offsetmap offsm =
-  if Value_parameters.is_debug_key_enabled dkey then
-    try
-      let aux_offset _ (v, _, _) =
-        match v with
-        | V_Or_Uninitialized.C_init_noesc _ -> ()
-        | _ -> raise (Indeterminate v)
-      in
-      V_Offsetmap.iter aux_offset offsm
-    with Indeterminate v ->
-      Value_parameters.debug ~current:true ~dkey ~once:true
-        "@[In memcpy@ builtin:@ precise@ copy of@ indeterminate@ values %a@]%t"
-        V_Or_Uninitialized.pretty v Value_util.pp_callstack
-
 type memcpy_alarm_context = {
   (* The warn mode. *)
   memcpy_alarm_warn_mode : CilE.warn_mode;
@@ -68,131 +52,30 @@ let abstract_memcpy ?(exact=true) ~(character_bits : Integer.t) ~emit_alarm
   ~(size: Ival.t) (* Number of characters to copy. *)
   (src : Location_Bytes.t) (dst : Location_Bytes.t) (state : Model.t) : Model.t =
 
-  let plevel = Value_parameters.ArrayPrecisionLevel.get() in
   let with_alarms = emit_alarm.memcpy_alarm_warn_mode in
 
-  let min,max = Ival.min_and_max size in
+  let min,_ = Ival.min_and_max size in
   let min = match min with None -> Int.zero | Some m -> Int.max m Int.zero in
   let size_min = Int.mul character_bits min in
 
   let right = loc_bytes_to_loc_bits src in
   let left = loc_bytes_to_loc_bits dst in
 
-  let precise_copy state =
-    (* First step: copy the bytes we are sure to copy *)
-    if Int.gt size_min Int.zero then begin
-      emit_alarm.memcpy_alarm_set_syntactic_context_array_src ();
-      match Eval_op.copy_offsetmap ~with_alarms right size_min state with
-      | `Bottom -> (* Read failed. Source was invalid, but must be read, we
-                      stop the analysis *)
-        raise (Memcpy_result Cvalue.Model.bottom)
-      | `Map offsetmap ->
-        memcpy_check_indeterminate_offsetmap offsetmap;
-        (* Read succeeded. We write the result *)
-        emit_alarm.memcpy_alarm_set_syntactic_context_array_dst ();
-        Eval_op.paste_offsetmap ~with_alarms ~remove_invalid:true
-          ~reducing:false ~from:offsetmap ~dst_loc:left ~size:size_min
-          ~exact:exact state
-      | `Top -> Warn.warn_top ();
-    end
-    else state (* Nothing certain can be copied *)
-  in
-  let imprecise_copy new_state =
-    (* Second step. Size is imprecise, we will now copy some bits
-       that we are not sure to copy *)
-    let size_min_ival = Ival.inject_singleton size_min in
-    let left = Location_Bits.shift size_min_ival left in
-    let right = Location_Bits.shift size_min_ival right in
-    try
-      (* We try to iter on all the slices inside the value of slice.
-         If there are more too many of them, we use a backup solution *)
-      ignore (Ival.cardinal_less_than size (plevel lsr 3));
-      let do_size s (left, right, prev_size, state) =
-        let s = Int.mul character_bits s in
-        let diff = Int.sub s prev_size in
-        if Int.equal s size_min then
-          (* occurs the very first time. This copy has already been
-             performed at the beginning, skip *)
-          (left, right, s, state)
-        else begin
-          (* Copy data between prev_size and s *)
-          emit_alarm.memcpy_alarm_set_syntactic_context_array_src ();
-          match Eval_op.copy_offsetmap ~with_alarms right diff state with
-          | `Bottom ->
-            (* This size is completely invalid. The following ones
-               will also be invalid, stop now with current result *)
-            raise (Memcpy_result state)
-          | `Top -> Warn.warn_top ();
-          | `Map offsetmap ->
-            memcpy_check_indeterminate_offsetmap offsetmap;
-            emit_alarm.memcpy_alarm_set_syntactic_context_array_dst ();
-            let new_state =
-              Eval_op.paste_offsetmap ~with_alarms ~reducing:false
-                ~remove_invalid:true ~from:offsetmap ~dst_loc:left
-                ~size:diff ~exact:false state
-            in
-            if Db.Value.is_reachable new_state then
-              let diffi = Ival.inject_singleton diff in
-              let left = Location_Bits.shift diffi left in
-              let right = Location_Bits.shift diffi right in
-              (left, right, s, new_state)
-            else (* As above, invalid size, this time for the destination.
-                    We stop there *)
-              raise (Memcpy_result state)
-        end
-      in
-      let _, _, _, state =
-        Ival.fold_int do_size size (left, right, Int.zero, new_state)
-      in
-      raise (Memcpy_result state)
-    with
-    | Abstract_interp.Not_less_than ->
-      Value_parameters.debug ~dkey ~once:true
-        ~current:true "In memcpy builtin: too many sizes to enumerate, \
-                       possible loss of precision";
-      (* Too many slices in the size. We read the entire range
-         src+(size_min..size_max-1) in one step, and write the result in
-         dst+(size_min..size_max-1) *)
-      let diff = match max with
-        | Some max -> Some (Int.mul character_bits (Int.pred (Int.sub max min)))
-        | None -> None
-      in
-      (* By using ranges modulo character_bits, we read and write
-         byte-by-byte, which can preserve some precision *)
-      let range = Ival.inject_top (Some Int.zero) diff Int.zero character_bits in
-      let right = Location_Bits.shift range right in
-      let size_char = Int_Base.inject character_bits in
-      let loc_right = make_loc right size_char in
-      let left = Location_Bits.shift range left in
-      let loc_left = make_loc left size_char in
-      let alarm, v = (* conflate_bottom=false: we want to copy padding bits *)
-        Model.find_unspecified ~conflate_bottom:false state loc_right
-      in
-      if alarm then begin
-        emit_alarm.memcpy_alarm_set_syntactic_context_array_src ();
-        Valarms.warn_mem_read with_alarms;
-      end;
-      begin match v with
-        | V_Or_Uninitialized.C_init_noesc _ -> ()
-        | _ -> Value_parameters.result ~dkey ~current:true ~once:true
-                 "@[In memcpy@ builtin:@ imprecise@ copy of@ indeterminate@ \
-                  values@]%t"
-                 Value_util.pp_callstack
-      end;
-      emit_alarm.memcpy_alarm_set_syntactic_context_array_dst ();
-      let updated_state = Eval_op.add_binding_unspecified ~with_alarms
-          ~remove_invalid:true ~exact:false new_state loc_left v
-      in
-      raise (Memcpy_result (Cvalue.Model.join updated_state new_state))
-  in
-  try
-    if Ival.is_zero size then raise (Memcpy_result state);
-    let precise_state = precise_copy state in
-    if Extlib.may_map ~dft:false (Int.equal min) max then
-      raise (Memcpy_result precise_state);
-    imprecise_copy precise_state
-  with
-  | Memcpy_result new_state -> new_state
+  if Ival.is_zero size
+  then state
+  else begin
+    emit_alarm.memcpy_alarm_set_syntactic_context_array_src ();
+    match Eval_op.copy_offsetmap ~with_alarms right size_min state with
+    | `Map offsetmap ->
+       (* Read succeeded. We write the result *)
+       emit_alarm.memcpy_alarm_set_syntactic_context_array_dst ();
+      Eval_op.paste_offsetmap ~with_alarms ~remove_invalid:true
+        ~reducing:false ~from:offsetmap ~dst_loc:left ~size:size_min
+        ~exact:exact state
+    | `Top
+    | `Bottom -> assert false
+  end
+
 
 (* Implements built-ins:
    - tis_memcpy
@@ -309,6 +192,6 @@ let () = register_builtin "tis_wmemmove" (tis_memcpy ~str_or_wcs:WideCharacter ~
 
 (*
 Local Variables:
-compile-command: "make -C ../../.."
+compile-command: "make -C ../../../../.."
 End:
 *)
