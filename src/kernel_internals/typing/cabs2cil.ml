@@ -4538,7 +4538,12 @@ and isVariableSizedArray ghost (dt: A.decl_type)
       ARRAY (JUSTBASE, al, lo) when lo.expr_node != A.NOTHING ->
       (* Try to compile the expression to a constant *)
       let (_, se, e', _) =
-        doExp (ghost_local_env ghost) true lo (AExp (Some intType)) in
+        (* NOTE: Actually we do not try to compile the expression to a constant,
+                 we do not care if it is a constant or not. This seems to work
+                 correctly, even though it is not clear if such a way of
+                 proceeding does not betray the initial aim of this function. *)
+        let asconst = false in
+        doExp (ghost_local_env ghost) asconst lo (AExp (Some intType)) in
       if isNotEmpty se || not (isConstant e') then begin
         res := Some (se, e');
         PTR (al, JUSTBASE)
