@@ -303,6 +303,17 @@ extern char *strdup (const char *s);
   @*/
 extern char *strndup (const char *s, size_t n);
 
+#ifdef _GNU_SOURCE
+
+/*@
+  requires valid_string_s1: valid_read_string(s1);
+  requires valid_string_s2: valid_read_string(s2);
+  assigns \result \from s1[..], s2[..];
+ */
+int strverscmp(const char *s1, const char *s2);
+
+#endif
+
 __END_DECLS
 
 /* Include strings.h: this is what BSD does, and glibc does something

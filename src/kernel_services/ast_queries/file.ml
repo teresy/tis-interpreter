@@ -388,7 +388,7 @@ let parse_cabs = function
   | NoCPP f ->
       if not (Sys.file_exists  f) then
         Kernel.abort "preprocessed file %S does not exist" f;
-      Kernel.feedback "Parsing %s (no preprocessing)" (Filepath.pretty f);
+      Kernel.debug "Parsing %s (no preprocessing)" (Filepath.pretty f);
       Frontc.parse f ()
   | NeedCPP (f, cmdl, is_gnu_like) ->
       if not (Sys.file_exists  f) then
@@ -458,7 +458,7 @@ let parse_cabs = function
       if Kernel.is_debug_key_enabled dkey_pp then
         Kernel.feedback ~dkey:dkey_pp
           "@{<i>preprocessing@} with \"%s %s %s\"" cmdl supp_args f;
-      Kernel.feedback "Parsing %s (with preprocessing)" (Filepath.pretty f);
+      Kernel.debug "Parsing %s (with preprocessing)" (Filepath.pretty f);
       let cpp_command = build_cpp_cmd cmdl supp_args f ppf in
       if Sys.command cpp_command <> 0 then begin
         safe_remove_file ppf;
@@ -498,7 +498,7 @@ preprocessor command or use the option \"-cpp-command\"." cpp_command
       if not (Sys.file_exists f) then
         Kernel.abort "file %S does not exist." f;
       try
-        Kernel.feedback "Parsing %s (external front-end)" (Filepath.pretty f);
+        Kernel.debug "Parsing %s (external front-end)" (Filepath.pretty f);
         Hashtbl.find check_suffixes suf f
       with Not_found ->
         Kernel.abort "could not find a suitable plugin for parsing %s." f

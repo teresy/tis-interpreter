@@ -65,9 +65,11 @@ let compute_using_body (kf, f) ~call_kinstr ~with_formals =
   end;
   (* Merge consolidated results, call callbacks *)
   let result = Computer.results () in
+(*
   if Value_parameters.ValShowProgress.get() then
     Value_parameters.feedback "Recording results for %a"
       Kernel_function.pretty kf;
+*)
   Computer.merge_results ();
   (match result.Value_types.c_values with
      | _ :: _ when  hasAttribute "noreturn" f.svar.vattr ->
