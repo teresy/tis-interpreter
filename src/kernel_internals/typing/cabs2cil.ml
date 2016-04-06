@@ -4542,7 +4542,7 @@ and isVariableSizedArray ghost (dt: A.decl_type)
                  we do not care if it is a constant or not. This seems to work
                  correctly, even though it is not clear if such a way of
                  proceeding does not betray the initial aim of this function. *)
-        let asconst = false in
+        let asconst = true in
         doExp (ghost_local_env ghost) asconst lo (AExp (Some intType)) in
       if isNotEmpty se || not (isConstant e') then begin
         res := Some (se, e');
