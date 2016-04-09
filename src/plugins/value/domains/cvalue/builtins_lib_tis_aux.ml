@@ -161,7 +161,7 @@ let additional_ptr_validity_check_for_size_zero ~for_writing ~size (exp, cvalue,
   if Cvalue.V.contains_zero size &&
     not (Locations.is_valid ~for_writing location) then begin
       Value_parameters.warning ~current:true
-        "@[invalid pointer %a.@ assert(%a is a valid pointer for %s)@]%t"
+        "@[invalid pointer %a:@ the pointer must be valid@ even though the size is zero.@ assert(%a is a valid pointer for %s)@]%t"
         Cvalue.V.pretty cvalue
         Cil_printer.pp_exp exp
         (if for_writing then "writing" else "reading")

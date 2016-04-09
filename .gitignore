@@ -17,7 +17,9 @@ share/Makefile.kernel
 share/frama-c.rc
 *.check_mli_exists
 bin/*
-
+filesystem/tis-mkfs
+tis-interpreter/tis-mkfs
+	
 *.tar.gz
 
 doc/code/docgen.ml

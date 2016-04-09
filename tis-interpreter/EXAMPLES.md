@@ -61,33 +61,16 @@ implementation for a virtual filesystem so that this sort of program can
 be run. To run this example, we are going to need:
 
 - examples/03_filesystem/main.c: the program we are interested in running
-- examples/03_filesystem/input.c: arbitrary contents for the file "input" in the
-     virtual filesystem
+- EXAMPLE.md: the very file you are reading, used as input by the program
 - filesystem/*.c: the implementation for the functions fopen() and fread()
 
-Use the command:
+For the directory that contains `EXAMPLES.md`, use the commands:
 
 ```
-tis-interpreter$ ./tis-interpreter.sh --cc "-Ifilesystem"  examples/03_filesystem/*.c filesystem/*.c
+./tis-mkfs -local EXAMPLES.md:EXAMPLES.md
+./tis-interpreter.sh  examples/03_filesystem/main.c filesystem/__tis_mkfs.c mkfs_filesystem.c
 ```
 
-Once the execution per se starts, you should see:
-
-```
-17 bytes read:
-
-
-97
-
-
-115
-
-
-100
-
-
-102
-
-
-...
-```
+Once the execution per se starts, you should see this file. Once again,
+the program contains a subtle bug (subtle enough that Valgrind probably does
+not catch it).

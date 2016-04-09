@@ -1369,6 +1369,27 @@ bin/toplevel.opt$(EXE): $(ALL_BATCH_CMX) $(GEN_OPT_LIBS) \
 	$(PRINT_LINKING) $@
 	$(OCAMLOPT) $(OLINKFLAGS) -o $@ $(OPT_LIBS) $(ALL_BATCH_CMX)
 
+#####################################
+# tis-mkfs virtual filesystem utility
+#####################################
+filesystem/mkfs_print.cmi: filesystem/mkfs_print.mli filesystem/mkfs_build.cmi
+	$(OCAMLOPT) -I filesystem -o $@ $<
+
+filesystem/mkfs_build.cmi: filesystem/mkfs_build.mli
+	$(OCAMLOPT) -I filesystem -o $@ $<
+
+filesystem/mkfs_print.cmx: filesystem/mkfs_print.ml filesystem/mkfs_print.cmi 
+	$(OCAMLOPT) -rectypes -I filesystem -c -o $@ $<
+
+filesystem/mkfs_build.cmx: filesystem/mkfs_build.ml filesystem/mkfs_build.cmi 
+	$(OCAMLOPT) -rectypes -I filesystem -c -o $@ $<
+
+filesystem/mkfs_main.cmx: filesystem/mkfs_main.ml filesystem/mkfs_main.cmi 
+	$(OCAMLOPT) -rectypes -I filesystem -c -o $@ $<
+
+filesystem/tis-mkfs$(EXE): filesystem/mkfs_print.cmx filesystem/mkfs_main.cmx filesystem/mkfs_build.cmx
+	$(OCAMLOPT) -o $@ unix.cmxa str.cmxa filesystem/mkfs_build.cmx filesystem/mkfs_print.cmx filesystem/mkfs_main.cmx
+
 ####################
 # (Ocaml) Toplevel #
 ####################
@@ -1985,6 +2006,8 @@ install:: install-lib
 	$(PRINT_INSTALL) man pages
 	$(CP) man/frama-c.1 $(MANDIR)/man1/frama-c.1
 	$(CP) man/frama-c.1 $(MANDIR)/man1/frama-c-gui.1
+	$(PRINT_INSTALL) tis-mkfs
+	$(CP) filesystem/tis-mkfs$(EXE) tis-interpreter/tis-mkfs$(EXE)
 
 .PHONY: uninstall
 uninstall::
@@ -2402,10 +2425,11 @@ byte:: bin/toplevel.byte$(EXE) \
 
 opt:: bin/toplevel.opt$(EXE) \
      share/Makefile.dynamic_config share/Makefile.kernel \
-	$(call create_lib_to_install_list,$(LIB_OPT_TO_INSTALL)) \
-	$(filter %.o %.cmi, \
-	   $(call create_lib_to_install_list,$(LIB_BYTE_TO_INSTALL))) \
-      $(PLUGIN_META_LIST)
+     filesystem/tis-mkfs$(EXE) \
+     $(call create_lib_to_install_list,$(LIB_OPT_TO_INSTALL)) \
+     $(filter %.o %.cmi, \
+     $(call create_lib_to_install_list,$(LIB_BYTE_TO_INSTALL))) \
+     $(PLUGIN_META_LIST)
 
 top: bin/toplevel.top$(EXE) \
 	$(call create_lib_to_install_list,$(LIB_BYTE_TO_INSTALL)) \

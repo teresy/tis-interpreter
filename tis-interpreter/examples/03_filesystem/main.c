@@ -2,14 +2,16 @@
 #include <stdlib.h>
 
 int main(void) {
-  FILE *in = fopen("input", "r");
+  FILE *in = fopen("EXAMPLES.md", "r");
   if (!in) {
     printf("Couldn't open input file.\n");
     exit(1);
   }
-  char b[100];
-  size_t r = fread(b, 1, 100, in);
-  printf("%zu bytes read:\n", r);
-  for (size_t i = 0; i < r; i++)
-    printf("%d\n", b[i]);
+  while (1) {
+    char b[500];
+    size_t r = fread(b, 1, 500, in);
+    if (r == 0) break;
+    printf("%zu bytes read:\n", r);
+    printf("%.500s\n", b);
+  }
 }
