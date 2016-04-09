@@ -1,7 +1,11 @@
 This is tis-interpreter, an interpreter of C for detecting undefined behavior.
 
-To compile, dependencies are a recent version of the OCaml compiler,
-the Zarith library of OCaml bindings for GMP, and findlib.
+To compile, dependencies are version 4.02.3 of the OCaml compiler,
+the Zarith library of OCaml bindings for GMP, and findlib. As of this writing
+(April 2016), this means that the OCaml package from your Linux distribution
+is likely to be too old. Your best bet is Opam, which is likely to be available
+as a package in your distribution and can make the installation of recent OCaml
+and OCaml dependencies a breeze.
 
 Configure with:
 ```
