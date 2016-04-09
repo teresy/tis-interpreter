@@ -167,7 +167,7 @@ else
             options="$options $options_interpreter_only"
     fi
 
-    $frama_c_binary -cpp-command="$final_compiler" \
+    exec $frama_c_binary -cpp-command="$final_compiler" \
                           $options $builtins $common_files \
                           $fc_runtime $others
 fi
