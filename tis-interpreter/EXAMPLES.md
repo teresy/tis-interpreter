@@ -1,5 +1,5 @@
-The first example shows how to use the interpreter on a single file example.c.
-From the directory examples/00_single_file, type:
+The first example shows how to use the interpreter on a single file `example.c`.
+From the directory `examples/00_single_file`, type:
 
 ```
 ../../tis-interpreter.sh example.c
@@ -15,7 +15,7 @@ example.c:5:[kernel] warning: out of bounds write. assert \valid(dest);
 
 Some C programs or libraries are spread over several files. In this case,
 all the files must be provided at once on the command-line. For an example,
-go to examples/01_multiple_files and type:
+go to `examples/01_multiple_files` and type:
 
 ```
 ../../tis-interpreter.sh main.c concat.c
@@ -33,12 +33,12 @@ buffer, one runs into uninitialized bytes before the terminating null character)
 
 -----
 
-When the main() function takes parameters, some choices are to modify the main
-function, or simply to provide a stub function that calls the main function
-with the parameters you want.
+When the `main` function takes parameters, some of the available choices are
+to modify the `main` function, or simply to provide a stub function that calls
+the `main` function with the parameters you want.
 
-For an example, go to examples/02_keccak_sha_3, which
-is a readable implementation of the sha3 cryptographic hash function
+For an example, go to `examples/02_keccak_sha_3`, a readable implementation
+of the SHA-3 cryptographic hash function
 (downloaded from http://keccak.noekeon.org/readable_code.html ), and type:
 
 ```
@@ -55,14 +55,14 @@ the names of the pre-processed files on the command-line instead.
 
 -----
 
-The next example, 03_filesystem/main.c, uses the functions fopen() and
-fread() to access the filesystem. tis-interpreter provides an
+The next example, `03_filesystem/main.c`, uses the functions `fopen` and
+`fread` to access the filesystem. tis-interpreter provides an
 implementation for a virtual filesystem so that this sort of program can
 be run. To run this example, we are going to need:
 
-- examples/03_filesystem/main.c: the program we are interested in running
-- EXAMPLE.md: the very file you are reading, used as input by the program
-- filesystem/*.c: the implementation for the functions fopen() and fread()
+- `examples/03_filesystem/main.c`: the program we are interested in running
+- `EXAMPLE.md`: the very file you are reading, used as input by the program
+- `filesystem/__tis_mkfs.c`: the implementation for the functions `fopen` and `fread`
 
 For the directory that contains `EXAMPLES.md`, use the commands:
 
@@ -71,6 +71,6 @@ For the directory that contains `EXAMPLES.md`, use the commands:
 ./tis-interpreter.sh  examples/03_filesystem/main.c filesystem/__tis_mkfs.c mkfs_filesystem.c
 ```
 
-Once the execution per se starts, you should see this file. Once again,
-the program contains a subtle bug (subtle enough that Valgrind probably does
-not catch it).
+Once the execution per se starts, you should see this file displayed
+500 characters at a time. Once again, the program contains a subtle bug
+(subtle enough that Valgrind probably does not catch it).
