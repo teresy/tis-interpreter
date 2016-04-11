@@ -146,31 +146,7 @@ let register_for_loop_body_hook f =
 let register_conditional_side_effect_hook f =
   ConditionalSideEffectHook.extend (fun (y,z) -> f y z)
 
-let rec is_dangerous_offset t = function
-    NoOffset -> false
-  | Field (_,o) as off ->
-    let t_offset = Cil.unrollType (Cil.typeOffset t off) in
-    Cil.typeHasAttribute "volatile" t_offset ||
-    is_dangerous_offset t_offset o
-  | Index _ -> true
-
-let rec is_dangerous e = match e.enode with
-  | Lval lv | AddrOf lv | StartOf lv -> is_dangerous_lval lv
-  | UnOp (_,e,_) | CastE(_,e) | Info(e,_) -> is_dangerous e
-  | BinOp(_,e1,e2,_) -> is_dangerous e1 || is_dangerous e2
-  | Const _ | SizeOf _ | SizeOfE _ | SizeOfStr _ | AlignOf _ | AlignOfE _ ->
-    false
-and is_dangerous_lval = function
-  | Var v,_ when 
-      (not v.vglob && not v.vformal && not v.vtemp) 
-      || Cil.hasAttribute "volatile" v.vattr
-      || Cil.typeHasAttribute "volatile" (Cil.unrollType v.vtype)
-    -> true
-  (* Local might be uninitialized, which will trigger UB,
-     but we assume that the variables we generate are correctly initialized.
-  *)
-  | Var v, o -> is_dangerous_offset (Cil.unrollType v.vtype) o
-  | Mem _,_ -> true
+let is_dangerous _e = true
 
 class check_no_locals = object
   inherit nopCilVisitor
