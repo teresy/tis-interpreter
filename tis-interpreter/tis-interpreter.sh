@@ -98,7 +98,8 @@ local options="\
   -val \
   -warn-decimal-float none \
   -unspecified-access \
-  -val-malloc-plevel 10000 \
+  -val-warn-pointer-arithmetic-out-of-bounds \
+  -val-malloc-plevel 1000000000 \
   -val-slevel-merge-after-loop=-@all \
   -no-val-print \
   -no-val-show-initial-state \
