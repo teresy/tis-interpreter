@@ -3701,6 +3701,30 @@ let rec evaluate_cond_exp = function
     | `CFalse -> `CTrue
     | `CUnknown -> `CUnknown
 
+(* How should an expression be treated in the 'doExp' and 'doCondExp' functions:
+   - ExpectConst:
+       The expression is supposed to be a constant expression, so if it happens
+       not to be one, an appropriate warning should be emmited.
+   - DontExpectConst:
+       The expression may be a constant expression or not.
+   - DontExpectConstButSimplifyIfPossible:
+       The expression may be a constant expression or not, but if it happens to
+       be a constant expression, it should be simplified. *)
+type asconst =
+  | ExpectConst
+  | DontExpectConst
+  | DontExpectConstButSimplifyIfPossible
+
+let asconst_of_isconst isconst =
+  if isconst
+  then ExpectConst
+  else DontExpectConst
+
+let asconst_of_isconst_simplify isconst =
+  if isconst
+  then ExpectConst
+  else DontExpectConstButSimplifyIfPossible
+
 let rec doSpecList ghost (suggestedAnonName: string)
     (* This string will be part of
      * the names for anonymous
@@ -4024,7 +4048,9 @@ let rec doSpecList ghost (suggestedAnonName: string)
       res
 
     | [A.TtypeofE e] ->
-      let (_, _, e', t) = doExp (ghost_local_env ghost) false e AExpLeaveArrayFun in
+      let (_, _, e', t) =
+        doExp (ghost_local_env ghost) DontExpectConst e AExpLeaveArrayFun
+      in
       let t' =
         match e'.enode with
         (* If this is a string literal, then we treat it as in sizeof*)
@@ -4539,10 +4565,8 @@ and isVariableSizedArray ghost (dt: A.decl_type)
       (* Try to compile the expression to a constant *)
       let (_, se, e', _) =
         (* NOTE: Actually we do not try to compile the expression to a constant,
-                 we do not care if it is a constant or not. This seems to work
-                 correctly, even though it is not clear if such a way of
-                 proceeding does not betray the initial aim of this function. *)
-        let asconst = true in
+                 but if it happens to be a constant we want to simplify it. *)
+        let asconst = DontExpectConstButSimplifyIfPossible in
         doExp (ghost_local_env ghost) asconst lo (AExp (Some intType)) in
       if isNotEmpty se || not (isConstant e') then begin
         res := Some (se, e');
@@ -4767,7 +4791,7 @@ and dropCasts e = match e.enode with
 
 and getIntConstExp ghost (aexp) : exp =
   let loc = aexp.expr_loc in
-  let _, c, e, _ = doExp (ghost_local_env ghost) true aexp (AExp None) in
+  let _, c, e, _ = doExp (ghost_local_env ghost) ExpectConst aexp (AExp None) in
   if not (isEmpty c) then
     Kernel.error ~once:true ~current:true "Constant expression %a has effects" 
       Cil_printer.pp_exp e;
@@ -4788,7 +4812,7 @@ and getIntConstExp ghost (aexp) : exp =
   | _ -> e
 
 and isIntegerConstant ghost (aexp) : int option =
-  match doExp (ghost_local_env ghost) true aexp (AExp None) with
+  match doExp (ghost_local_env ghost) ExpectConst aexp (AExp None) with
   | (_, c, e, _) when isEmpty c -> begin
       match Cil.constFoldToInt e with
       | Some i64 -> Some (Integer.to_int i64)
@@ -4805,7 +4829,7 @@ and isIntegerConstant ghost (aexp) : int option =
  * - its type.
 *)
 and doExp local_env
-    (asconst: bool)   (* This expression is used as a constant *)
+    (asconst: asconst) (* This expression is used as a constant *)
     (e: A.expression)
     (what: expAction)
   =
@@ -4937,9 +4961,9 @@ and doExp local_env
     | A.INDEX (e1, e2) -> begin
         (* Recall that doExp turns arrays into StartOf pointers *)
         let (r1, se1, e1', t1) =
-          doExp local_env false e1 (AExp None) in
+          doExp local_env DontExpectConst e1 (AExp None) in
         let (r2,se2, e2', t2) =
-          doExp local_env false e2 (AExp None) in
+          doExp local_env DontExpectConst e2 (AExp None) in
         let se = se1 @@ (se2, ghost) in
         let (e1'', t1, e2'', tresult) =
           (* Either e1 or e2 can be the pointer *)
@@ -4976,9 +5000,9 @@ and doExp local_env
         finishExp reads se (new_exp ~loc (Lval res)) (dropQualifiers tresult)
       end
     | A.UNARY (A.MEMOF, e) ->
-      if asconst then
+      if asconst = ExpectConst then
         Kernel.warning ~current:true "MEMOF in constant";
-      let (r,se, e', t) = doExp local_env false e (AExp None) in
+      let (r,se, e', t) = doExp local_env DontExpectConst e (AExp None) in
       let tresult =
         match unrollType t with
         | TPtr(te, _) -> te
@@ -5000,7 +5024,7 @@ and doExp local_env
     | A.MEMBEROF (e, str) ->
       (* member of is actually allowed if we only take the address *)
       (* if isconst then Cil.error "MEMBEROF in constant";  *)
-      let (r,se, e', t') = doExp local_env false e (AExp None) in
+      let (r,se, e', t') = doExp local_env DontExpectConst e (AExp None) in
       let lv =
         match e'.enode with
         | Lval x -> x
@@ -5034,8 +5058,9 @@ and doExp local_env
 
     (* e->str = * (e + off(str)) *)
     | A.MEMBEROFPTR (e, str) ->
-      if asconst then Kernel.warning ~current:true "MEMBEROFPTR in constant";
-      let (r,se, e', t') = doExp local_env false e (AExp None) in
+      if asconst = ExpectConst then
+        Kernel.warning ~current:true "MEMBEROFPTR in constant";
+      let (r,se, e', t') = doExp local_env DontExpectConst e (AExp None) in
       let pointedt = match unrollType t' with
         | TPtr(t1, _) -> t1
         | TArray(t1,_,_,_) -> t1
@@ -5184,7 +5209,7 @@ and doExp local_env
       (* Allow non-constants in sizeof *)
       (* Do not convert arrays and functions into pointers. *)
       let (_, se, e', _) =
-        doExp local_env false e AExpLeaveArrayFun in
+        doExp local_env DontExpectConst e AExpLeaveArrayFun in
         (*
           ignore (E.log "sizeof: %a e'=%a, t=%a\n"
           Cil_printer.pp_location !currentLoc Cil_printer.pp_exp e' Cil_printer.pp_typ t);
@@ -5223,7 +5248,7 @@ and doExp local_env
 
     | A.EXPR_ALIGNOF e ->
       let (_, se, e', _) =
-        doExp local_env false e AExpLeaveArrayFun in
+        doExp local_env DontExpectConst e AExpLeaveArrayFun in
       (* !!!! The book says that the expression is not evaluated, so we
        * drop the potential side-effects *)
       if isNotEmpty se then begin
@@ -5369,7 +5394,7 @@ and doExp local_env
     | A.UNARY(A.ADDROF, e) -> begin
         match e.expr_node with
         | A.COMMA el -> (* GCC extension *)
-          doExp local_env false
+          doExp local_env DontExpectConst
             { e with expr_node =
                        A.COMMA (replaceLastInList el
                                   (fun e ->
@@ -5377,7 +5402,7 @@ and doExp local_env
             }
             what
         | A.QUESTION (e1, e2, e3) -> (* GCC extension *)
-          doExp local_env false
+          doExp local_env DontExpectConst
             { e with expr_node =
                        A.QUESTION (e1,
                                    { e2 with expr_node = A.UNARY(A.ADDROF, e2)},
@@ -5394,7 +5419,7 @@ and doExp local_env
             { expr_loc=e1.expr_loc; expr_node = A.UNARY(A.ADDROF,e1)} 
           in
           let _,_,for_printing,type_left =
-            doExp local_env false addr_of_left AType in
+            doExp local_env DontExpectConst addr_of_left AType in
           let descr = 
             Pretty_utils.sfprintf "%a" Cil_descriptive_printer.pp_exp for_printing
           in
@@ -5403,7 +5428,7 @@ and doExp local_env
           addLocalToEnv tmp.vname (EnvVar tmp);
           let (r1, se1 , _e1, _t) = (* T* tmp = &l; *)
             doExp
-              local_env false addr_of_left 
+              local_env DontExpectConst addr_of_left
               (ASet(true, tmp_var, [], type_left))
           in
           let evar = Cil.evar ~loc:e2.expr_loc tmp in
@@ -5432,7 +5457,7 @@ and doExp local_env
             | PREDECR -> SUB_ASSIGN
             | _ -> assert false
           in
-          doExp local_env false 
+          doExp local_env DontExpectConst
             (cabs_exp loc
             (UNARY
                (ADDROF,
@@ -5441,7 +5466,7 @@ and doExp local_env
                            cabs_exp loc (CONSTANT(CONST_INT("1")))))))))
             what
         | A.PAREN e1 ->
-          doExp local_env false
+          doExp local_env DontExpectConst
             { e with expr_node = A.UNARY(A.ADDROF, e1)} what
         | A.VARIABLE s when
             isOldStyleVarArgName s
@@ -5497,7 +5522,7 @@ and doExp local_env
         | A.INDEX _ | A.MEMBEROF _ | A.MEMBEROFPTR _
         | A.CAST (_, A.COMPOUND_INIT _) ->
           begin
-            let (r, se, e', t) = doExp local_env false e (AExp None) in
+            let (r, se, e', t) = doExp local_env DontExpectConst e (AExp None) in
             (* ignore (E.log "ADDROF on %a : %a\n" Cil_printer.pp_exp e'
                Cil_printer.pp_typ t); *)
             match e'.enode with
@@ -5580,9 +5605,9 @@ and doExp local_env
            A.INDEX _ | A.MEMBEROF _ | A.MEMBEROFPTR _ |
            A.CAST _ (* A GCC extension *)) -> begin
             let uop' = if uop = A.PREINCR then PlusA else MinusA in
-            if asconst then
+            if asconst = ExpectConst then
               Kernel.warning ~current:true "PREINCR or PREDECR in constant";
-            let (r, se, e', t) = doExp local_env false e (AExp None) in
+            let (r, se, e', t) = doExp local_env DontExpectConst e (AExp None) in
             let lv =
               match e'.enode with
               | Lval x -> x
@@ -5634,11 +5659,11 @@ and doExp local_env
         | (A.VARIABLE _ | A.UNARY (A.MEMOF, _) | (* Regular lvalues *)
            A.INDEX _ | A.MEMBEROF _ | A.MEMBEROFPTR _ |
            A.CAST _ (* A GCC extension *) ) -> begin
-            if asconst then
+            if asconst = ExpectConst then
               Kernel.warning ~current:true "POSTINCR or POSTDECR in constant";
             (* If we do not drop the result then we must save the value *)
             let uop' = if uop = A.POSINCR then PlusA else MinusA in
-            let (r,se, e', t) = doExp local_env false e (AExp None) in
+            let (r,se, e', t) = doExp local_env DontExpectConst e (AExp None) in
             let lv =
               match e'.enode with
               | Lval x -> x
@@ -5727,9 +5752,12 @@ and doExp local_env
             (cabs_exp loc (A.BINARY(A.ASSIGN,e1,e2))) what
         | (A.VARIABLE _ | A.UNARY (A.MEMOF, _) | (* Regular lvalues *)
            A.INDEX _ | A.MEMBEROF _ | A.MEMBEROFPTR _ ) -> begin
-            if asconst then Kernel.warning ~current:true "ASSIGN in constant";
+            if asconst = ExpectConst then
+              Kernel.warning ~current:true "ASSIGN in constant";
             let se0 = unspecified_chunk empty in
-            let (r1,se1, e1', lvt) = doExp local_env false e1 (AExp None) in
+            let (r1,se1, e1', lvt) =
+              doExp local_env DontExpectConst e1 (AExp None)
+            in
             let lv =
               match e1'.enode with
               | Lval x -> x
@@ -5746,7 +5774,7 @@ and doExp local_env
                   Lval.Set.add lv local_env.authorized_reads }
             in
             (*[BM]: is this useful?
-              let (_, _, _) = doExp ghost false e2 (ASet(lv, lvt)) in*)
+              let (_, _, _) = doExp ghost DontExpectConst e2 (ASet(lv, lvt)) in*)
             (* Catch the case of an lval that might depend on itself,
                e.g. p[p[0]] when p[0] == 0.  We need to use a temporary
                here if the result of the expression will be used:
@@ -5776,7 +5804,8 @@ and doExp local_env
               else r1',lv, empty
             in
             let (r2,se2, _, _) =
-              doExp local_env false e2 (ASet(not needsTemp,tmplv, r1, lvt))
+              doExp local_env DontExpectConst
+                e2 (ASet(not needsTemp,tmplv, r1, lvt))
             in
             let (@@) s1 s2 = s1 @@ (s2, ghost) in
             (* Format.eprintf "chunk for assigns is %a@." d_chunk se2; *)
@@ -5825,7 +5854,7 @@ and doExp local_env
         | (A.VARIABLE _ | A.UNARY (A.MEMOF, _) | (* Regular lvalues *)
            A.INDEX _ | A.MEMBEROF _ | A.MEMBEROFPTR _ |
            A.CAST _ (* GCC extension *) ) -> begin
-            if asconst then
+            if asconst = ExpectConst then
               Kernel.warning ~current:true "op_ASSIGN in constant";
             let bop' = match bop with
               | A.ADD_ASSIGN -> PlusA
@@ -5840,7 +5869,9 @@ and doExp local_env
               | A.SHR_ASSIGN -> Shiftrt
               | _ -> Kernel.fatal ~current:true "binary +="
             in
-            let (r1,se1, e1', t1) = doExp local_env false e1 (AExp None) in
+            let (r1,se1, e1', t1) =
+              doExp local_env DontExpectConst e1 (AExp None)
+            in
             let lv1 =
               match e1'.enode with
               | Lval x -> x
@@ -5858,7 +5889,9 @@ and doExp local_env
                 authorized_reads =
                   Lval.Set.add lv1 local_env.authorized_reads }
             in
-            let (r2, se2, e2', t2) = doExp local_env false e2 (AExp None) in
+            let (r2, se2, e2', t2) =
+              doExp local_env DontExpectConst e2 (AExp None)
+            in
             let se2 = remove_reads lv1 se2 in
             let tresult, result = doBinOp loc bop' e1' t1 e2' t2 in
             (* We must cast the result to the type of the lv1, which may be
@@ -5948,7 +5981,7 @@ and doExp local_env
                          typ' f(typ* a1,...);
                          Hence we just infer the right type
                          looking at the first argument. *)
-                      let _,_,_,t = doExp local_env false a1 AType in
+                      let _,_,_,t = doExp local_env DontExpectConst a1 AType in
                       let t = typeOf_pointed t in
                       Format.sprintf "%s_%sint%d_t"
                         n
@@ -5994,7 +6027,7 @@ and doExp local_env
                  new_exp ~loc:f.expr_loc (Lval(var proto)), ftype)
               end
           end
-        | _ -> doExp local_env false f (AExp None)
+        | _ -> doExp local_env DontExpectConst f (AExp None)
       in
       (* Get the result type and the argument types *)
       let (resType, argTypes, isvar, f'',attrs) =
@@ -6080,7 +6113,7 @@ and doExp local_env
            * test/small1/union5, in which a transparent union is passed
            * as an argument *)
           let (sa, a', att) = force_right_to_left_evaluation
-              (doExp local_env false a (AExp None)) in
+              (doExp local_env DontExpectConst a (AExp None)) in
           let (_, a'') = castTo att at a' in
           (ss @@ (sa, ghost), a'' :: args')
 
@@ -6095,7 +6128,7 @@ and doExp local_env
               let (ss, args') = loop args in
               let (sa, a', _) =
                 force_right_to_left_evaluation
-                  (doExp local_env false a (AExp None))
+                  (doExp local_env DontExpectConst a (AExp None))
               in
               (ss @@ (sa, ghost), a' :: args')
           in
@@ -6409,7 +6442,7 @@ and doExp local_env
                 (List.length !pargs)
               end*)
            | _ ->
-             if asconst then 
+             if asconst = ExpectConst then
                (* last special case: we cannot allow a function call
                   at this point.*)
                begin
@@ -6489,7 +6522,8 @@ and doExp local_env
       finishExp [] !prechunk !pres !prestype
 
     | A.COMMA el ->
-      if asconst then Kernel.warning ~current:true "COMMA in constant";
+      if asconst = ExpectConst then
+        Kernel.warning ~current:true "COMMA in constant";
       (* We must ignore AExpLeaveArrayFun (a.k.a. 'do not decay pointers')
          if the expression at hand is a sequence with strictly more than
          one expression, because the exception for sizeof and typeof only
@@ -6503,11 +6537,11 @@ and doExp local_env
       in
       let rec loop sofar = function
         | [e] ->
-          let (r, se, e', t') = doExp local_env false e what in
+          let (r, se, e', t') = doExp local_env DontExpectConst e what in
           (* Pass on the action *)
           (r, sofar @@ (se, ghost), e', t')
         | e :: rest ->
-          let (_, se, _, _) = doExp local_env false e ADrop in
+          let (_, se, _, _) = doExp local_env DontExpectConst e ADrop in
           loop (sofar @@ (se, ghost)) rest
         | [] -> Kernel.fatal ~current:true "empty COMMA expression"
       in
@@ -6528,7 +6562,7 @@ and doExp local_env
            forbidden in a constant expression context, such as function calls.
         *)
         let is_true_cond = evaluate_cond_exp ce1 in
-        if asconst && is_true_cond = `CTrue then begin
+        if asconst = ExpectConst && is_true_cond = `CTrue then begin
           match e2.expr_node with
           | A.NOTHING ->
             (match ce1 with
@@ -6541,7 +6575,7 @@ and doExp local_env
           | _ ->
             let _,_,e2,t2 = doExp local_env asconst e2 what' in
             finishExp [] empty e2 t2
-        end else if asconst && is_true_cond = `CFalse then begin
+        end else if asconst = ExpectConst && is_true_cond = `CFalse then begin
           let _,_,e3,t3 = doExp local_env asconst e3 what' in
           finishExp [] empty e3 t3
         end else begin
@@ -6911,7 +6945,7 @@ and doBinOp loc (bop: binop) (e1: exp) (t1: typ) (e2: exp) (t2: typ) =
  * conditionals in the initializers. So, we try very hard to avoid creating
  * new statements.
 *)
-and doCondExp local_env (asconst: bool)
+and doCondExp local_env (asconst: asconst)
     (** Try to evaluate the conditional expression
      * to TRUE or FALSE, because it occurs in a constant *)
     ?ctxt (* ctxt is used internally to determine if we should apply
@@ -7003,9 +7037,13 @@ and doCondExp local_env (asconst: bool)
        | Some orig ->
          ConditionalSideEffectHook.apply (orig,e));
       ignore (checkBool t e');
+      let shouldConstFold =
+           asconst = ExpectConst
+        || asconst = DontExpectConstButSimplifyIfPossible
+      in
       CEExp (add_reads e.expr_loc r se,
-             if asconst || theMachine.lowerConstants then
-               constFold asconst e'
+             if shouldConstFold || theMachine.lowerConstants then
+               constFold shouldConstFold e'
              else e')
   in
   result
@@ -7101,7 +7139,7 @@ and doCondition local_env (isconst: bool)
     (sf: chunk) : chunk =
   if isEmpty st && isEmpty sf(*TODO: ignore attribute FRAMA_C_KEEP_BLOCK*) then
     begin
-      let (_, se,e,_) = doExp local_env false e ADrop in
+      let (_, se,e,_) = doExp local_env DontExpectConst e ADrop in
       if is_dangerous e then begin
         let ghost = local_env.is_ghost in
         se @@ (keepPureExpr ~ghost e e.eloc, ghost)
@@ -7113,13 +7151,16 @@ and doCondition local_env (isconst: bool)
         se
       end
     end else begin
-      let ce = doCondExp local_env isconst e in
+      let ce =
+        let asconst = asconst_of_isconst isconst in
+        doCondExp local_env asconst e
+      in
       let chunk = compileCondExp ~ghost:local_env.is_ghost ce st sf in
       chunk
     end
 
 and doPureExp local_env (e : A.expression) : exp =
-  let (_,se, e', _) = doExp local_env true e (AExp None) in
+  let (_,se, e', _) = doExp local_env ExpectConst e (AExp None) in
   if isNotEmpty se then
     Kernel.error ~once:true ~current:true "%a has side-effects" Cprint.print_expression e;
   e'
@@ -7386,7 +7427,8 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
    * then we must go on and try to initialize the fields *)
   | TComp (comp, _, _), (A.NEXT_INIT, A.SINGLE_INIT oneinit) :: restil ->
     let r,se, oneinit', t' =
-      doExp local_env isconst oneinit (AExp None)
+      let asconst = asconst_of_isconst isconst in
+      doExp local_env asconst oneinit (AExp None)
     in
     let se = add_reads oneinit'.eloc r se in
     if (match unrollType t' with
@@ -7409,7 +7451,9 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
   (* A scalar with a single initializer *)
   | _, (A.NEXT_INIT, A.SINGLE_INIT oneinit) :: restil ->
     let r, se, oneinit', t' =
-      doExp local_env isconst oneinit (AExp(Some so.soTyp)) in
+      let asconst = asconst_of_isconst_simplify isconst in
+      doExp local_env asconst oneinit (AExp(Some so.soTyp))
+    in
     let se = add_reads oneinit'.eloc r se in
     Kernel.debug ~dkey:category_initializer "oneinit'=%a, t'=%a, so.soTyp=%a"
       Cil_printer.pp_exp oneinit' Cil_printer.pp_typ t'
@@ -7463,7 +7507,8 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
           A.SINGLE_INIT oneinit)])]
     when not ci.cstruct ->
     (* Do the expression to find its type *)
-    let _, _, _, t' = doExp local_env isconst oneinit (AExp None) in
+    let _, _, _, t' =
+      doExp local_env (asconst_of_isconst isconst) oneinit (AExp None) in
     let t'noattr = Cil.typeDeepDropAllAttributes t' in
     let rec findField = function
       | [] ->
@@ -7520,7 +7565,8 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
       try
         let oneinit = find_one_init next in
         let r,se, oneinit', t' =
-          doExp local_env isconst oneinit (AExp(Some so.soTyp))
+          let asconst = asconst_of_isconst isconst in
+          doExp local_env asconst oneinit (AExp(Some so.soTyp))
         in
         let se = add_reads oneinit'.eloc r se in
         let init_expr = makeCastT oneinit' t' so.soTyp in
@@ -7565,7 +7611,7 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
               let ilen = integerArrayLength leno in
               let nextidx', doidx =
                 let (r,doidx, idxe', _) =
-                  doExp local_env true idx (AExp(Some intType))
+                  doExp local_env ExpectConst idx (AExp(Some intType))
                 in
                 let doidx = add_reads idxe'.eloc r doidx in
                 match constFoldToInt idxe', isNotEmpty doidx with
@@ -7600,9 +7646,9 @@ and doInit local_env isconst add_implicit_ensures preinit so acc initl =
 
       | A.ATINDEXRANGE_INIT (idxs, idxe) ->
         let (rs, doidxs, idxs', _) =
-          doExp local_env true idxs (AExp(Some intType)) in
+          doExp local_env ExpectConst idxs (AExp(Some intType)) in
         let (re, doidxe, idxe', _) =
-          doExp local_env true idxe (AExp(Some intType)) in
+          doExp local_env ExpectConst idxe (AExp(Some intType)) in
         let doidxs = add_reads idxs'.eloc rs doidxs in
         let doidxe = add_reads idxe'.eloc re doidxe in
         if isNotEmpty doidxs || isNotEmpty doidxe then
@@ -9011,11 +9057,11 @@ and doStatement local_env (s : A.statement) : chunk =
     CurrentLoc.set (convLoc loc);
     let (lasts, data) = !gnu_body_result in
     if lasts == s then begin      (* This is the last in a GNU_BODY *)
-      let (s', e', t') = doFullExp local_env false e (AExp None) in
+      let (s', e', t') = doFullExp local_env DontExpectConst e (AExp None) in
       data := Some (e', t');      (* Record the result *)
       s'
     end else
-      let (s', e', _) = doFullExp local_env false e ADrop in
+      let (s', e', _) = doFullExp local_env DontExpectConst e ADrop in
       (* drop the side-effect free expression unless the whole computation
          is pure and it contains potential threats (i.e. dereference)
       *)
@@ -9107,12 +9153,12 @@ and doStatement local_env (s : A.statement) : chunk =
       ForLoopHook.apply (fc1,e2,e3,s);
       let (se1, _, _) , has_decl =
         match fc1 with
-        | FC_EXP e1 -> doFullExp local_env false e1 ADrop, false
+        | FC_EXP e1 -> doFullExp local_env DontExpectConst e1 ADrop, false
         | FC_DECL d1 ->
           (doDecl local_env false d1, zero ~loc, voidType), true
       in
       let a = mk_loop_annot a loc in
-      let (se3, _, _) = doFullExp local_env false e3 ADrop in
+      let (se3, _, _) = doFullExp local_env DontExpectConst e3 ADrop in
       startLoop false;
       let s' = doStatement local_env s in
       (*Kernel.debug "Loop body : %a" d_chunk s';*)
@@ -9165,14 +9211,14 @@ and doStatement local_env (s : A.statement) : chunk =
     if isVoidType !currentReturnType then begin
       Kernel.error ~current:true
         "Return statement with a value in function returning void";
-      let (se, _, _) = doFullExp local_env false e ADrop in
+      let (se, _, _) = doFullExp local_env DontExpectConst e ADrop in
       se @@ (returnChunk ~ghost None loc', ghost)
     end else begin
       let rt =
         typeRemoveAttributes ["warn_unused_result"] !currentReturnType
       in
       let (se, e', et) =
-        doFullExp local_env false e (AExp (Some rt)) in
+        doFullExp local_env DontExpectConst e (AExp (Some rt)) in
       let (_, e'') = castTo et rt e' in
       se @@ (returnChunk ~ghost (Some e'') loc', ghost)
     end
@@ -9180,7 +9226,7 @@ and doStatement local_env (s : A.statement) : chunk =
   | A.SWITCH (e, s, loc) ->
     let loc' = convLoc loc in
     CurrentLoc.set loc';
-    let (se, e', et) = doFullExp local_env false e (AExp None) in
+    let (se, e', et) = doFullExp local_env DontExpectConst e (AExp None) in
     if not (Cil.isIntegralType et) then
       Kernel.error ~once:true ~current:true "Switch on a non-integer expression.";
     let et' = Cil.integralPromotion et in
@@ -9193,7 +9239,7 @@ and doStatement local_env (s : A.statement) : chunk =
   | A.CASE (e, s, loc) ->
     let loc' = convLoc loc in
     CurrentLoc.set loc';
-    let (se, e', _) = doFullExp local_env true e (AExp None) in
+    let (se, e', _) = doFullExp local_env ExpectConst e (AExp None) in
     if isNotEmpty se || not (Cil.isIntegerConstant e') then
       Kernel.error ~once:true ~current:true
         "Case statement with a non-constant";
@@ -9210,8 +9256,8 @@ and doStatement local_env (s : A.statement) : chunk =
   | A.CASERANGE (el, eh, s, loc) ->
     let loc' = convLoc loc in
     CurrentLoc.set loc;
-    let (sel, el', _) = doFullExp local_env false el (AExp None) in
-    let (seh, eh', _) = doFullExp local_env false eh (AExp None) in
+    let (sel, el', _) = doFullExp local_env DontExpectConst el (AExp None) in
+    let (seh, eh', _) = doFullExp local_env DontExpectConst eh (AExp None) in
     if isNotEmpty sel || isNotEmpty seh then
       Kernel.error ~once:true ~current:true
         "Case statement with a non-constant";
@@ -9260,7 +9306,7 @@ and doStatement local_env (s : A.statement) : chunk =
       CurrentLoc.set loc';
       (* Do the expression *)
       let se, e', _ =
-        doFullExp local_env false e (AExp (Some voidPtrType)) in
+        doFullExp local_env DontExpectConst e (AExp (Some voidPtrType)) in
       match !gotoTargetData with
       | Some (switchv, switch) -> (* We have already generated this one  *)
         (se
@@ -9328,7 +9374,7 @@ and doStatement local_env (s : A.statement) : chunk =
           List.map
             (fun (id, c, e) ->
                let (se, e', _) =
-                 doFullExp local_env false e (AExp None)
+                 doFullExp local_env DontExpectConst e (AExp None)
                in
                let lv =
                  match e'.enode with
@@ -9347,7 +9393,7 @@ and doStatement local_env (s : A.statement) : chunk =
           List.map
             (fun (id, c, e) ->
                let (r, se, e', _) =
-                 doExp local_env false e (AExp None)
+                 doExp local_env DontExpectConst e (AExp None)
                in
                let se = add_reads e'.eloc r se in
                if not (isEmpty se) then
@@ -9376,7 +9422,7 @@ and doStatement local_env (s : A.statement) : chunk =
     (match e with
      | None -> s2c (mkStmt ~ghost (Throw (None,loc')))
      | Some e ->
-       let se,e,t = doFullExp local_env false e (AExp None) in
+       let se,e,t = doFullExp local_env DontExpectConst e (AExp None) in
        se @@
        (s2c (mkStmt ~ghost (Throw (Some (e,t),loc'))),ghost))
   | TRY_CATCH(stry,l,loc) ->
@@ -9420,7 +9466,7 @@ and doStatement local_env (s : A.statement) : chunk =
     let b': chunk = doBody local_env b in
     (* Now do e *)
     let ((se: chunk), e', _) =
-      doFullExp local_env false e (AExp None) in
+      doFullExp local_env DontExpectConst e (AExp None) in
     let h': chunk = doBody local_env h in
     if b'.cases <> [] || h'.cases <> [] || se.cases <> [] then
       Kernel.error ~once:true ~current:true

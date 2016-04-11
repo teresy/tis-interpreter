@@ -83,6 +83,7 @@ local builtins="\
   -val-builtin atof:tis_atof_interpreter \
   -val-builtin sscanf:tis_sscanf \
   -val-builtin scanf:tis_scanf \
+  -val-builtin alloca:Frama_C_alloc_size \
 "
 
 local options_interpreter_only="\

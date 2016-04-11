@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <alloca.h>
 
 #define __KEY_SIZE 64
 #define __VALUE_SIZE 128
