@@ -325,7 +325,7 @@ let warn_mem warn_mode wmm =
 let warn_mem_read warn_mode = warn_mem warn_mode Alarms.For_reading 
 let warn_mem_write warn_mode = warn_mem warn_mode Alarms.For_writing
 
-let warn_index warn_mode ~positive ~range =
+let warn_index warn_mode ~non_negative ~respects_upper_bound ~range =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
@@ -339,13 +339,14 @@ let warn_index warn_mode ~positive ~range =
                  k "@[accessing out of bounds index %s.@ @[%a@]@]%t"
                    range pr_annot annot)
            in
-           if not positive then
+           if not non_negative then
              warn (Alarms.Index_out_of_bound(e1, None));
-           warn (Alarms.Index_out_of_bound(e1, Some e2))
+           if not respects_upper_bound then
+             warn (Alarms.Index_out_of_bound(e1, Some e2))
 	| _, SyBinOp _ ->
 	  assert false)
 
-let warn_index_for_address warn_mode ~allow_one_past ~positive ~range =
+let warn_index_for_address warn_mode ~allow_one_past ~non_negative ~respects_upper_bound ~range =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
@@ -356,17 +357,19 @@ let warn_index_for_address warn_mode ~allow_one_past ~positive ~range =
            let warn a =
              register_alarm emitter ki a
                (fun annot k ->
+                 (* Value_parameters.feedback ~current:true "warn"; *)
                  k "@[in address, out of bounds index %s.@ @[%a@]@]%t"
                    range pr_annot annot)
            in
-           if not positive then
+           if not non_negative then
              warn (Alarms.Index_in_address(e1, Alarms.Nonnegative));
-           let k =
-             if allow_one_past
-             then Alarms.One_past e2
-             else Alarms.Strict e2
-           in
-           warn (Alarms.Index_in_address(e1, k))
+           if not respects_upper_bound then
+             let k =
+               if allow_one_past
+               then Alarms.One_past e2
+               else Alarms.Strict e2
+             in
+             warn (Alarms.Index_in_address(e1, k))
 	| _, SyBinOp _ ->
 	  assert false)
 

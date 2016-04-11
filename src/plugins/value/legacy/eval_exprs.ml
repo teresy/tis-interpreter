@@ -710,17 +710,25 @@ and reduce_by_accessed_loc ~for_writing state lv loc =
     Valarms.do_warn with_alarms.CilE.others
       (fun () ->
 	let range = Pretty_utils.to_string Ival.pretty index in
-	let positive = match Ival.min_int index with
+	let non_negative = match Ival.min_int index with
 	  | None -> false
 	  | Some min -> Int.ge min Int.zero
 	in
+  let respects_upper_bound = match Ival.max_int index with
+    | None -> false
+    | Some max -> Int.le max last_valid
+  in
+  (* As index is not equal to new_index, at least one of these two must be true. *)
+  assert ((not non_negative) || (not respects_upper_bound));
         let size = Extlib.the array_size_exp (* array_size exists *) in
         (* first [index_exp] is unused *)
         let sc = Valarms.SyBinOp (index_exp, IndexPI, index_exp, size) in
 	Valarms.set_syntactic_context sc;
 	if for_access
-        then Valarms.warn_index with_alarms ~positive ~range
-        else Valarms.warn_index_for_address with_alarms ~allow_one_past ~positive ~range
+        then Valarms.warn_index with_alarms
+               ~non_negative ~respects_upper_bound ~range
+        else Valarms.warn_index_for_address with_alarms ~allow_one_past
+               ~non_negative ~respects_upper_bound ~range
       );
     let new_index_v = V.inject_ival new_index in
     let state = reduce_previous_value state index_exp new_index_v in

@@ -76,18 +76,20 @@ val warn_float_to_int_overflow:
   warn_mode ->
   Integer.t option -> Integer.t option -> (Format.formatter -> unit) -> unit
 
-val warn_index : warn_mode -> positive:bool -> range:string -> unit
-(** [warn_index w ~for_access ~positive ~range] emits a warning
+val warn_index : warn_mode -> non_negative:bool -> respects_upper_bound:bool ->
+  range:string -> unit
+(** [warn_index w ~for_access ~non_negative ~range] emits a warning
     signaling an out of bounds access.
     The expression used as index is taken from the syntactic context.
     [range] is used to display the inferred values for the index.
-    If [positive] is true, the generated assertion is of the form
-    "e < upper_bound"; otherwise, two assertions are generated: "0 <= e"
-    and "e < upper_bound".
+    If [non_negative] is false, an assertion of the form "0 <= e" is generated,
+    if [respects_upper_bound] is false, an assertion of the form
+    "e < upper_bound" is generated; and if both are false, both assertions are
+    generated.
 *)
 
 val warn_index_for_address : warn_mode -> allow_one_past: bool ->
-  positive:bool -> range:string -> unit
+  non_negative:bool -> respects_upper_bound:bool -> range:string -> unit
 (** Same as [warn_index] but for building an address without dereferencing it.
     if [allow_one_past], "e <= upper_bound" is generated instead of
     "e < upper_bound" to account for pointers "one past".
