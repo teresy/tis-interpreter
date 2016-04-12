@@ -146,8 +146,6 @@ let register_for_loop_body_hook f =
 let register_conditional_side_effect_hook f =
   ConditionalSideEffectHook.extend (fun (y,z) -> f y z)
 
-let is_dangerous _e = true
-
 class check_no_locals = object
   inherit nopCilVisitor
   method! vlval (h,_) =
@@ -6601,7 +6599,7 @@ and doExp local_env
             (* dummy result, that will be ultimately be dropped *)
             let res = Cil.zero ~loc in
             (match e2'o with
-             | None when is_dangerous e3' || not (isEmpty se3) ->
+             | None ->
                let descr =
                  Pretty_utils.sfprintf "%a" Cprint.print_expression e1
                in
@@ -6615,9 +6613,7 @@ and doExp local_env
                in
                let se1 = local_var_chunk se1 tmp in
                let dangerous =
-                 if is_dangerous e3' then
                    keepPureExpr ~ghost e3' loc
-                 else skipChunk
                in
                finishExp (r1@r3)
                  ((empty @@ (se1, ghost)) @@
@@ -6625,45 +6621,11 @@ and doExp local_env
                      (se3 @@ (dangerous, ghost)), ghost))
                  res
                  tresult
-             | None ->
-               (* we can drop e3, just keep e1 in case it is dangerous *)
-               let (r1,se1,e1,_) = doExp local_env asconst e1 ADrop in
-               let dangerous =
-                 if is_dangerous e1 then
-                   keepPureExpr ~ghost e1 loc
-                 else skipChunk
-               in
-               finishExp
-                 (r1@r3) (se1 @@ (dangerous, ghost)) res tresult
-             | Some e2'
-               when is_dangerous e2' || is_dangerous e3'
-                    || not (isEmpty se2) || not (isEmpty se3) ->
-               (* we have to keep e1 in order to know which
-                  dangerous expression is to be evaluated *)
-               let se2 =
-                 if is_dangerous e2' then
-                   se2 @@
-                   (keepPureExpr ~ghost e2' loc, ghost)
-                 else se2
-               in
-               let se3 =
-                 if is_dangerous e3' then
-                   se3 @@ (keepPureExpr ~ghost e3' loc, ghost)
-                 else se3
-               in
+             | Some e2' ->
+               let se2 = se2 @@ (keepPureExpr ~ghost e2' loc, ghost) in
+               let se3 = se3 @@ (keepPureExpr ~ghost e3' loc, ghost) in
                let cond = compileCondExp ~ghost ce1 se2 se3 in
-               finishExp (r2@r3) cond res tresult
-             | Some _ ->
-               (* we just keep e1 in case it is dangerous. everything
-                  else can be dropped *)
-               let (r1,se1,e1,_) = doExp local_env asconst e1 ADrop in
-               let dangerous =
-                 if is_dangerous e1 then
-                   keepPureExpr ~ghost e1 loc
-                 else skipChunk
-               in
-               finishExp
-                 (r1@r2@r3) (se1 @@ (dangerous, ghost)) res tresult)
+               finishExp (r2@r3) cond res tresult)
           | _ -> (* Use a conditional *) begin
               match e2'o with
               | None -> (* has form "e1 ? : e3"  *)
@@ -7116,16 +7078,8 @@ and doCondition local_env (isconst: bool)
   if isEmpty st && isEmpty sf(*TODO: ignore attribute FRAMA_C_KEEP_BLOCK*) then
     begin
       let (_, se,e,_) = doExp local_env DontExpectConst e ADrop in
-      if is_dangerous e then begin
-        let ghost = local_env.is_ghost in
-        se @@ (keepPureExpr ~ghost e e.eloc, ghost)
-      end else begin
-        if (isEmpty se) then begin
-          let name = !currentFunctionFDEC.svar.vorig_name in
-          IgnorePureExpHook.apply (name, e)
-        end;
-        se
-      end
+      let ghost = local_env.is_ghost in
+      se @@ (keepPureExpr ~ghost e e.eloc, ghost)
     end else begin
       let ce =
         let asconst = asconst_of_isconst isconst in
@@ -9041,7 +8995,7 @@ and doStatement local_env (s : A.statement) : chunk =
       (* drop the side-effect free expression unless the whole computation
          is pure and it contains potential threats (i.e. dereference)
       *)
-      if isEmpty s' && is_dangerous e'
+      if isEmpty s'
       then
         s' @@ (keepPureExpr ~ghost e' loc, ghost)
       else
