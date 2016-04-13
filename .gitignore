@@ -23,7 +23,6 @@ tis-interpreter/tis-mkfs
 *.tar.gz
 
 doc/code/docgen.ml
-lib/
 src/kernel_internals/parsing/clexer.ml
 src/kernel_internals/parsing/cparser.ml
 src/kernel_internals/parsing/cparser.mli
@@ -42,4 +41,3 @@ src/plugins/report/Makefile
 src/plugins/security_slicing/Makefile
 src/plugins/wp/Makefile
 tis-interpreter/tis-interpreter/
-
