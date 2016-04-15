@@ -43,17 +43,30 @@ let wrap_size_t i =
 
 
 let reinterpret_int ~with_alarms ikind v =
-  let size = Int.of_int (Cil.bitsSizeOfInt ikind) in
-  let signed = Cil.isSigned ikind in
-  let v', ok = V.cast ~signed ~size v in
-  if not ok then
-    Valarms.do_warn with_alarms.CilE.imprecision_tracing
-      (fun () ->
-         Kernel.warning ~once:true ~current:true
-           "@[casting address@ to a type@ smaller@ than sizeof(void*):@ \
+  if ikind = IBool then
+    if V.is_included v V.zero_or_one
+    then v
+    else begin
+      (* TODO: emit an alarm of a kind that exists *)
+      Value_util.warning_once_current
+        "@[Reading@ a wrong@ representation@ (%a)@ for@ type _Bool.@ \
+         assert(representation of value of type _Bool is zero or one)@]%t"
+	V.pretty v Value_util.pp_callstack;
+      if Value_parameters.InterpreterMode.get() then exit 0;
+      V.narrow V.zero_or_one v
+    end
+  else
+    let size = Int.of_int (Cil.bitsSizeOfInt ikind) in
+    let signed = Cil.isSigned ikind in
+    let v', ok = V.cast ~signed ~size v in
+    if not ok then
+      Valarms.do_warn with_alarms.CilE.imprecision_tracing
+        (fun () ->
+          Kernel.warning ~once:true ~current:true
+            "@[casting address@ to a type@ smaller@ than sizeof(void*):@ \
                   @[%a@]@]" V.pretty v
-      );
-  v'
+        );
+    v'
 
 let reinterpret_float ~with_alarms fkind v =
   let conv = match Value_util.float_kind fkind with
