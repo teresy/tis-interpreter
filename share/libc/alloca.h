@@ -23,6 +23,8 @@
 
 __BEGIN_DECLS
 
+/*@ ghost extern int __fc_heap_status __attribute__((FRAMA_C_MODEL)); */
+
 /*@ 
   @ assigns __fc_heap_status \from size, __fc_heap_status;
   @ assigns \result \from size, __fc_heap_status;

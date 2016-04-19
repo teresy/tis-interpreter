@@ -28,45 +28,58 @@
 
 __BEGIN_DECLS
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isalnum(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isalpha(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isblank(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int iscntrl(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isdigit(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isgraph(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int islower(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isprint(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int ispunct(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isspace(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isupper(int c);
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isxdigit(int c);
 
 /* ISO C : 7.4.2 */
 
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int tolower(int c);
 
 /*@ requires -1 <= c <= 255;
@@ -74,7 +87,8 @@ int tolower(int c);
 int toupper(int c);
 
 /* POSIX */
-/*@ assigns \result \from c ; */
+/*@ requires -1 <= c <= 255;
+    assigns \result \from c ; */
 int isascii(int c);
 
 __END_DECLS

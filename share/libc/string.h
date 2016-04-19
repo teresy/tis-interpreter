@@ -32,146 +32,147 @@ __BEGIN_DECLS
 
 // Query memory
 
-/*@ requires \valid_read(((char*)s1)+(0..n - 1));
-  @ requires \valid_read(((char*)s2)+(0..n - 1));
-  @ assigns \result \from ((char*)s1)[0.. n-1], ((char*)s2)[0.. n-1];
-  @ ensures \result == memcmp{Pre,Pre}((char*)s1,(char*)s2,n);
+/*@ requires \valid_read(((char*)__s1)+(0 .. __n - 1));
+  @ requires \valid_read(((char*)__s2)+(0 .. __n - 1));
+  @ assigns \result \from ((char*)__s1)[0 .. __n - 1],
+                          ((char*)__s2)[0 .. __n - 1];
+  @ ensures \result == memcmp{Pre,Pre}((char*)__s1,(char*)__s2,__n);
   @*/
-extern int memcmp (const void *s1, const void *s2, size_t n);
+extern int memcmp (const void *__s1, const void *__s2, size_t __n);
 
-/*@ requires \valid_read(((unsigned char*)s)+(0..n - 1));
-  @ assigns \result \from s, c, ((unsigned char*)s)[0..n-1];
+/*@ requires \valid_read(((unsigned char*)__s)+(0..__n - 1));
+  @ assigns \result \from __s, __c, ((unsigned char*)__s)[0..__n-1];
   @ behavior found:
-  @   assumes memchr((char*)s,c,n);
-  @   ensures \base_addr(\result) == \base_addr(s);
-  @   ensures *(char*)\result == c;
+  @   assumes memchr((char*)__s,__c,__n);
+  @   ensures \base_addr(\result) == \base_addr(__s);
+  @   ensures *(char*)\result == __c;
   @   ensures \forall integer i;
-  @     0 <= i < n ==> *((unsigned char*)s+i) == c
-  @     ==> \result <= s+i;
+  @     0 <= i < __n ==> *((unsigned char*)__s+i) == __c
+  @     ==> \result <= __s+i;
   @ behavior not_found:
-  @   assumes ! memchr((char*)s,c,n);
+  @   assumes ! memchr((char*)__s,__c,__n);
   @   ensures \result == \null;
   @*/
-extern void *memchr(const void *s, int c, size_t n);
+extern void *memchr(const void *__s, int __c, size_t __n);
 
 // Copy memory
 
-/*@ requires valid_dst: \valid(((char*)dest)+(0..n - 1));
-  @ requires valid_src: \valid_read(((char*)src)+(0..n - 1));
-  @ requires \separated(((char *)dest)+(0..n-1),((char *)src)+(0..n-1));
-  @ assigns ((char*)dest)[0..n - 1] \from ((char*)src)[0..n-1];
-  @ assigns \result \from dest;
-  @ ensures memcmp{Post,Pre}((char*)dest,(char*)src,n) == 0;
-  @ ensures \result == dest;
+/*@ requires valid_dst: \valid(((char*)__dest)+(0..__n - 1));
+  @ requires valid_src: \valid_read(((char*)__src)+(0..__n - 1));
+  @ requires \separated(((char *)__dest)+(0..__n-1),((char *)__src)+(0..__n-1));
+  @ assigns ((char*)__dest)[0..__n - 1] \from ((char*)__src)[0..__n-1];
+  @ assigns \result \from __dest;
+  @ ensures memcmp{Post,Pre}((char*)__dest,(char*)__src,__n) == 0;
+  @ ensures \result == __dest;
   @*/
-extern void *memcpy(void *restrict dest,
-		    const void *restrict src, size_t n);
+extern void *memcpy(void *restrict __dest,
+		    const void *restrict __src, size_t __n);
 
-/*@ requires valid_dst: \valid(((char*)dest)+(0..n - 1));
-  @ requires valid_src: \valid_read(((char*)src)+(0..n - 1));
-  @ assigns ((char*)dest)[0..n - 1] \from ((char*)src)[0..n-1];
-  @ assigns \result \from dest;
-  @ ensures memcmp{Post,Pre}((char*)dest,(char*)src,n) == 0;
-  @ ensures \result == dest;
+/*@ requires valid_dst: \valid(((char*)__dest)+(0..__n - 1));
+  @ requires valid_src: \valid_read(((char*)__src)+(0..__n - 1));
+  @ assigns ((char*)__dest)[0..__n - 1] \from ((char*)__src)[0..__n-1];
+  @ assigns \result \from __dest;
+  @ ensures memcmp{Post,Pre}((char*)__dest,(char*)__src,__n) == 0;
+  @ ensures \result == __dest;
   @*/
-extern void *memmove(void *dest, const void *src, size_t n);
+extern void *memmove(void *__dest, const void *__src, size_t __n);
 
 // Set memory
 
-/*@ requires \valid(((char*)s)+(0..n - 1));
-  @ assigns ((char*)s)[0..n - 1] \from c;
-  @ assigns \result \from s;
-  @ ensures memset((char*)s,c,n);
-  @ ensures \result == s;
+/*@ requires \valid(((char*)__s)+(0..__n - 1));
+  @ assigns ((char*)__s)[0..__n - 1] \from __c;
+  @ assigns \result \from __s;
+  @ ensures memset((char*)__s,__c,__n);
+  @ ensures \result == __s;
   @*/
-extern void *memset(void *s, int c, size_t n);
+extern void *memset(void *__s, int __c, size_t __n);
 
 // Query strings
 
-/*@ requires valid_string_src: valid_read_string(s);
-  @ assigns \result \from s[0..];
-  @ ensures \result == strlen(s);
+/*@ requires valid_string_src: valid_read_string(__s);
+  @ assigns \result \from __s[0..];
+  @ ensures \result == strlen(__s);
   @*/
-extern size_t strlen (const char *s);
+extern size_t strlen (const char *__s);
 
-/*@ requires valid_string_src: valid_read_string(s); // over-strong
-  @ assigns \result \from s[0..];
-  @ ensures \result == strlen(s) || \result == n;
+/*@ requires valid_string_src: valid_read_string(__s); // over-strong
+  @ assigns \result \from __s[0..];
+  @ ensures \result == strlen(__s) || \result == __n;
   @*/
-extern size_t strnlen (const char *s, size_t n);
+extern size_t strnlen (const char *__s, size_t __n);
 
-/*@ requires valid_string_s1: valid_read_string(s1);
-  @ requires valid_string_s2: valid_read_string(s2);
-  @ assigns \result \from s1[0..], s2[0..];
-  @ ensures \result == strcmp(s1,s2);
+/*@ requires valid_string_s1: valid_read_string(__s1);
+  @ requires valid_string_s2: valid_read_string(__s2);
+  @ assigns \result \from __s1[0..], __s2[0..];
+  @ ensures \result == strcmp(__s1,__s2);
   @*/
-extern int strcmp (const char *s1, const char *s2);
+extern int strcmp (const char *__s1, const char *__s2);
 
-/*@ requires valid_string_s1: valid_read_string(s1); // over-strong
-  @ requires valid_string_s2: valid_read_string(s2); // over-strong
-  @ assigns \result \from s1[0 .. n-1], s2[0 ..n-1];
-  @ ensures \result == strncmp(s1,s2,n);
+/*@ requires valid_string_s1: valid_read_string(__s1); // over-strong
+  @ requires valid_string_s2: valid_read_string(__s2); // over-strong
+  @ assigns \result \from __s1[0 .. __n-1], __s2[0 ..__n-1];
+  @ ensures \result == strncmp(__s1,__s2,__n);
   @*/
-extern int strncmp (const char *s1, const char *s2, size_t n);
+extern int strncmp (const char *__s1, const char *__s2, size_t __n);
 
-/*@ requires valid_string_s1: valid_read_string(s1); // over-strong
-  @ requires valid_string_s2: valid_read_string(s2); // over-strong
-  @ assigns \result \from s1[0..], s2[0..];
+/*@ requires valid_string_s1: valid_read_string(__s1); // over-strong
+  @ requires valid_string_s2: valid_read_string(__s2); // over-strong
+  @ assigns \result \from __s1[0..], __s2[0..];
   @*/
-extern int strcoll (const char *s1, const char *s2);
+extern int strcoll (const char *__s1, const char *__s2);
 
-/*@ requires valid_string_src: valid_read_string(s);
-  @ assigns \result \from s, s[0..],c;
+/*@ requires valid_string_src: valid_read_string(__s);
+  @ assigns \result \from __s, __s[0..],__c;
   @ behavior found:
-  @   assumes strchr(s,c);
-  @   ensures *\result == c;
-  @   ensures \base_addr(\result) == \base_addr(s);
-  @   ensures s <= \result < s + strlen(s);
+  @   assumes strchr(__s,__c);
+  @   ensures *\result == __c;
+  @   ensures \base_addr(\result) == \base_addr(__s);
+  @   ensures __s <= \result < __s + strlen(__s);
   @   ensures valid_read_string(\result);
-  @   ensures \forall char* p; s<=p<\result ==> *p != c;
+  @   ensures \forall char* p; __s<=p<\result ==> *p != __c;
   @ behavior not_found:
-  @   assumes ! strchr(s,c);
+  @   assumes ! strchr(__s,__c);
   @   ensures \result == \null;
   @ behavior default:
-  @ ensures \result == \null || \base_addr(\result) == \base_addr(s);
+  @ ensures \result == \null || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strchr(const char *s, int c);
+extern char *strchr(const char *__s, int __c);
 
-/*@ requires valid_string_src: valid_read_string(s);
-  @ assigns \result \from s, s[0..],c;
+/*@ requires valid_string_src: valid_read_string(__s);
+  @ assigns \result \from __s, __s[0..],__c;
   @ behavior found:
-  @   assumes strchr(s,c);
-  @   ensures *\result == c;
-  @   ensures \base_addr(\result) == \base_addr(s);
+  @   assumes strchr(__s,__c);
+  @   ensures *\result == __c;
+  @   ensures \base_addr(\result) == \base_addr(__s);
   @   ensures valid_read_string(\result);
   @ behavior not_found:
-  @   assumes ! strchr(s,c);
+  @   assumes ! strchr(__s,__c);
   @   ensures \result == \null;
   @ behavior default:
-  @ ensures \result == \null || \base_addr(\result) == \base_addr(s);
+  @ ensures \result == \null || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strrchr(const char *s, int c);
+extern char *strrchr(const char *__s, int __c);
 
-/*@ requires valid_string_src: valid_read_string(s);
+/*@ requires valid_string_src: valid_read_string(__s);
   @ requires valid_string_reject: valid_read_string(reject);
-  @ assigns \result \from s[0..], reject[0..];
-  @ ensures 0 <= \result <= strlen(s);
+  @ assigns \result \from __s[0..], reject[0..];
+  @ ensures 0 <= \result <= strlen(__s);
   @*/
-extern size_t strcspn(const char *s, const char *reject);
+extern size_t strcspn(const char *__s, const char *reject);
 
-/*@ requires valid_string_src: valid_read_string(s);
+/*@ requires valid_string_src: valid_read_string(__s);
   @ requires valid_string_accept: valid_read_string(accept);
-  @ assigns \result \from s[0..], accept[0..];
-  @ ensures 0 <= \result <= strlen(s);
+  @ assigns \result \from __s[0..], accept[0..];
+  @ ensures 0 <= \result <= strlen(__s);
   @*/
-extern size_t strspn(const char *s, const char *accept);
+extern size_t strspn(const char *__s, const char *accept);
 
-/*@ requires valid_string_src: valid_read_string(s);
+/*@ requires valid_string_src: valid_read_string(__s);
   @ requires valid_string_accept: valid_read_string(accept);
-  @ assigns \result \from s, s[0..], accept[0..];
-  @ ensures \result == 0 || \base_addr(\result) == \base_addr(s);
+  @ assigns \result \from __s, __s[0..], accept[0..];
+  @ ensures \result == 0 || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strpbrk(const char *s, const char *accept);
+extern char *strpbrk(const char *__s, const char *accept);
 
 /*@ requires valid_string_haystack: valid_read_string(haystack);
   @ requires valid_string_needle: valid_read_string(needle);
@@ -182,13 +183,13 @@ extern char *strpbrk(const char *s, const char *accept);
   @*/
 extern char *strstr(const char *haystack, const char *needle);
 
-/*@ requires valid_string_src: valid_string_or_null(s);
+/*@ requires valid_string_src: valid_string_or_null(__s);
   @ requires valid_string_delim: valid_read_string(delim);
-  @ assigns \result \from s, s[0..], delim[0..];
+  @ assigns \result \from __s, __s[0..], delim[0..];
   @ ensures \result == \null
-            || \base_addr(\result) == \base_addr(s);
+            || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strtok(char *restrict s, const char *restrict delim);
+extern char *strtok(char *restrict __s, const char *restrict delim);
 
 /*@ requires valid_string_src: \valid(stringp) && valid_string(*stringp);
   @ requires valid_string_delim: valid_read_string(delim);
@@ -205,112 +206,114 @@ extern char *strerror(int errnum);
 
 // Copy strings
 
-/*@ requires valid_string_src: valid_read_string(src);
-  @ requires room_string: \valid(dest+(0..strlen(src)));
-  @ assigns dest[0..strlen(src)] \from src[0..strlen(src)];
-  @ assigns \result \from dest;
-  @ ensures strcmp(dest,src) == 0;
-  @ ensures \result == dest;
+/*@ requires valid_string_src: valid_read_string(__src);
+  @ requires room_string: \valid(__dest+(0..strlen(__src)));
+  @ assigns __dest[0..strlen(__src)] \from __src[0..strlen(__src)];
+  @ assigns \result \from __dest;
+  @ ensures strcmp(__dest,__src) == 0;
+  @ ensures \result == __dest;
   @*/
-extern char *strcpy(char *restrict dest, const char *restrict src);
+extern char *strcpy(char *restrict __dest, const char *restrict __src);
 
 /*@ 
-  @ requires valid_string_src: valid_read_string(src);
-  @ requires room_nstring: \valid(dest+(0 .. n-1));
-  @ assigns dest[0..n - 1] \from src[0..n-1];
-  @ assigns \result \from dest;
-  @ ensures \result == dest;
-  @ ensures \initialized(dest+(0 .. n-1));
+  @ requires valid_string_src: valid_read_string(__src);
+  @ requires room_nstring: \valid(__dest+(0 .. __n-1));
+  @ assigns __dest[0..__n - 1] \from __src[0..__n-1];
+  @ assigns \result \from __dest;
+  @ ensures \result == __dest;
+  @ ensures \initialized(__dest+(0 .. __n-1));
   @ behavior complete:
-  @   assumes strlen(src) < n;
-  @   ensures strcmp(dest,src) == 0;
+  @   assumes strlen(__src) < __n;
+  @   ensures strcmp(__dest,__src) == 0;
   @ behavior partial:
-  @   assumes n <= strlen(src);
-  @   ensures memcmp{Post,Post}(dest,src,n) == 0;
+  @   assumes __n <= strlen(__src);
+  @   ensures memcmp{Post,Post}(__dest,__src,__n) == 0;
   @*/
-extern char *strncpy(char *restrict dest,
-		     const char *restrict src, size_t n);
+extern char *strncpy(char *restrict __dest,
+		     const char *restrict __src, size_t __n);
 
 // stpcpy is POSIX.1-2008
 #ifdef _POSIX_C_SOURCE
 # if _POSIX_C_SOURCE >= 200809L
-/*@ requires valid_string_src: valid_read_string(src);
-  @ requires room_string: \valid(dest+(0..strlen(src)));
-  @ assigns dest[0..strlen(src)] \from src[0..strlen(src)];
-  @ assigns \result \from dest;
-  @ ensures strcmp(dest,src) == 0;
-  @ ensures \result == dest + strlen(dest);
+/*@ requires valid_string_src: valid_read_string(__src);
+  @ requires room_string: \valid(__dest+(0..strlen(__src)));
+  @ assigns __dest[0..strlen(__src)] \from __src[0..strlen(__src)];
+  @ assigns \result \from __dest;
+  @ ensures strcmp(__dest,__src) == 0;
+  @ ensures \result == __dest + strlen(__dest);
   @*/
-extern char *stpcpy(char *restrict dest, const char *restrict src);
+extern char *stpcpy(char *restrict __dest, const char *restrict __src);
 # endif
 #endif
 
 /*@ // missing: separation
-  @ requires valid_string_src: valid_read_string(src);
-  @ requires valid_string_dst: valid_string(dest);
-  @ requires room_string: \valid(dest+(0..strlen(dest) + strlen(src)));
-  @ assigns dest[strlen(dest)..strlen(dest) + strlen(src)]
-  @   \from src[0..strlen(src)];
-  @ ensures strlen(dest) == \old(strlen(dest) + strlen(src));
-  @ assigns \result \from dest;
-  @ ensures \result == dest;
+  @ requires valid_string_src: valid_read_string(__src);
+  @ requires valid_string_dst: valid_string(__dest);
+  @ requires room_string: \valid(__dest+(0..strlen(__dest) + strlen(__src)));
+  @ assigns __dest[strlen(__dest)..strlen(__dest) + strlen(__src)]
+  @   \from __src[0..strlen(__src)];
+  @ ensures strlen(__dest) == \old(strlen(__dest) + strlen(__src));
+  @ assigns \result \from __dest;
+  @ ensures \result == __dest;
   @*/
-extern char *strcat(char *restrict dest, const char *restrict src);
+extern char *strcat(char *restrict __dest, const char *restrict __src);
 
 /*@ // missing: separation
-  @ requires valid_string_src: valid_read_string(src) || \valid_read(src+(0..n-1));
-  @ requires valid_string_dst: valid_string(dest);
-  @ requires room_string: \valid(dest + (strlen(dest) .. strlen(dest) + n)) ;
-  @ assigns dest[strlen(dest) .. strlen(dest) + n] \from src[0..n];
-  @ assigns \result \from dest;
-  @ ensures \result == dest;
+  @ requires valid_string_src:
+      valid_read_string(__src) || \valid_read(__src+(0..__n-1));
+  @ requires valid_string_dst: valid_string(__dest);
+  @ requires room_string:
+      \valid(__dest + (strlen(__dest) .. strlen(__dest) + __n)) ;
+  @ assigns __dest[strlen(__dest) .. strlen(__dest) + __n] \from __src[0..__n];
+  @ assigns \result \from __dest;
+  @ ensures \result == __dest;
   @ behavior complete:
-  @   assumes valid_read_string(src) && strlen(src) <= n;
-  @   assigns dest[strlen(dest)..strlen(dest) + strlen(src)]
-  @   \from src[0..strlen(src)];
-  @   assigns \result \from dest;
-  @   ensures strlen(dest) == \old(strlen(dest) + strlen(src));
+  @   assumes valid_read_string(__src) && strlen(__src) <= __n;
+  @   assigns __dest[strlen(__dest)..strlen(__dest) + strlen(__src)]
+  @   \from __src[0..strlen(__src)];
+  @   assigns \result \from __dest;
+  @   ensures strlen(__dest) == \old(strlen(__dest) + strlen(__src));
   @ behavior partial:
-  @   assumes ! (valid_read_string(src) && strlen(src) <= n);
-  @   assigns dest[strlen(dest)..strlen(dest) + n]
-  @   \from src[0..strlen(src)];
-  @   assigns \result \from dest;
-  @   ensures strlen(dest) == \old(strlen(dest)) + n;
+  @   assumes ! (valid_read_string(__src) && strlen(__src) <= __n);
+  @   assigns __dest[strlen(__dest)..strlen(__dest) + __n]
+  @   \from __src[0..strlen(__src)];
+  @   assigns \result \from __dest;
+  @   ensures strlen(__dest) == \old(strlen(__dest)) + __n;
   @*/
-extern char *strncat(char *restrict dest, const char *restrict src, size_t n);
+extern char *strncat(char *restrict __dest, const char *restrict __src, size_t __n);
 
-/*@ requires valid_dest: \valid(dest+(0..n - 1));
-  @ requires valid_string_src: valid_read_string(src);
-  @ assigns dest[0..n - 1] \from src[0..], n;
-  @ assigns \result \from dest;
+/*@ requires valid_dest: \valid(__dest+(0..__n - 1));
+  @ requires valid_string_src: valid_read_string(__src);
+  @ assigns __dest[0..__n - 1] \from __src[0..], __n;
+  @ assigns \result \from __dest;
   @*/
-extern size_t strxfrm (char *restrict dest,
-		       const char *restrict src, size_t n);
+extern size_t strxfrm (char *restrict __dest,
+		       const char *restrict __src, size_t __n);
 
 // Allocate strings
 
-/*@ requires valid_string_src: valid_read_string(s);
+/*@ requires valid_string_src: valid_read_string(__s);
   @ assigns \result; // FIXME
-  @ ensures \valid(\result+(0..strlen(s))) && strcmp(\result,s) == 0;
+  @ ensures \valid(\result+(0..strlen(__s))) && strcmp(\result,__s) == 0;
   @*/
-extern char *strdup (const char *s);
+extern char *strdup (const char *__s);
 
-/*@ requires valid_string_src: valid_read_string(s); // FIXME
+/*@ requires valid_string_src: valid_read_string(__s); // FIXME
   @ assigns \result; // FIXME
-  @ ensures \valid(\result+(0..minimum(strlen(s),n)))
-  @         && valid_string(\result) && strlen(\result) <= n
-  @         && strncmp(\result,s,n) == 0;
+  @ ensures \valid(\result+(0..minimum(strlen(__s),__n)))
+  @         && valid_string(\result) && strlen(\result) <= __n
+  @         && strncmp(\result,__s,__n) == 0;
   @*/
-extern char *strndup (const char *s, size_t n);
+extern char *strndup (const char *__s, size_t __n);
 
 #ifdef _GNU_SOURCE
 
 /*@
-  requires valid_string_s1: valid_read_string(s1);
-  requires valid_string_s2: valid_read_string(s2);
-  assigns \result \from s1[..], s2[..];
+  requires valid_string_s1: valid_read_string(__s1);
+  requires valid_string_s2: valid_read_string(__s2);
+  assigns \result \from __s1[..], __s2[..];
  */
-int strverscmp(const char *s1, const char *s2);
+int strverscmp(const char *__s1, const char *__s2);
 
 #endif
 
