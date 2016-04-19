@@ -21,3 +21,8 @@ At this stage, the best uses for tis-interpreter are pure C libraries with
 as few dependencies as possible and existing tests. After compilation
 (or after downloading a soon-to-be-available binary package), you can
 experiment with [examples of increasing difficulty](https://github.com/TrustInSoft/tis-interpreter/blob/master/tis-interpreter/EXAMPLES.md).
+
+tis-interpreter is based on the open-source [Frama-C platform](http://frama-c.com),
+developed by CEA LIST and Inria over the last eleven years. We are
+grateful to all Frama-C developers for their contributions to making
+formal verification practical in academic and industrial contexts.
