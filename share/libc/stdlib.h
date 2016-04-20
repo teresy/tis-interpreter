@@ -146,6 +146,7 @@ void srand48 (long int seed);
 void srand(unsigned int seed);
 
 /* ISO C: 7.20.3.1 */
+/*@ requires (size_t)(nmemb * size) == nmemb * size ; */
 void *calloc(size_t nmemb, size_t size);
 
 /*@ ghost extern int __fc_heap_status __attribute__((FRAMA_C_MODEL)); */
