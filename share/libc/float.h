@@ -39,13 +39,13 @@
 #define DBL_DIG			15
 #define LDBL_DIG		18
 
-#define FLT_MIN_EXP		-125
-#define DBL_MIN_EXP		-1021
-#define LDBL_MIN_EXP		-16381
+#define FLT_MIN_EXP		(-125)
+#define DBL_MIN_EXP		(-1021)
+#define LDBL_MIN_EXP		(-16381)
 
-#define FLT_MIN_10_EXP		-37
-#define DBL_MIN_10_EXP		-307
-#define LDBL_MIN_10_EXP		-4931
+#define FLT_MIN_10_EXP		(-37)
+#define DBL_MIN_10_EXP		(-307)
+#define LDBL_MIN_10_EXP		(-4931)
 
 #define FLT_MAX_EXP		128
 #define DBL_MAX_EXP		1024
@@ -67,7 +67,7 @@
 #define DBL_MIN			0x1p-1022
 #define LDBL_MIN		0x1p-16382
 
-#define FLT_ROUNDS		-1
-#define FLT_EVAL_METHOD		-1
+#define FLT_ROUNDS		(-1)
+#define FLT_EVAL_METHOD		(-1)
 
 #endif
