@@ -53,7 +53,7 @@
 // the compiler were unable to statically determine
 // the object size (we only consider the cases where type
 // is either 0 or 1).
-#define __builtin_object_size (ptr, type) ((size_t)-1)
+#define __builtin_object_size(ptr, type) ((size_t)-1)
 #define __bos(ptr) __builtin_object_size (ptr, 0)
 #define __bos0(ptr) __builtin_object_size (ptr, 0)
 

@@ -63,7 +63,7 @@ struct flock
 
 #include "__fc_define_seek_macros.h"
 
-# define AT_FDCWD		-100	/* Special value used to indicate
+# define AT_FDCWD		(-100)	/* Special value used to indicate
 					   the *at functions should use the
 					   current working directory. */
 # define AT_SYMLINK_NOFOLLOW	0x100	/* Do not follow symbolic links.  */
