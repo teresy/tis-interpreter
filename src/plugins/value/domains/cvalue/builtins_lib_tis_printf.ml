@@ -188,6 +188,14 @@ let ignore_zero_if_precision seen_percent =
     Seen(flags, width, precision, modi, was_star)
   | _ -> seen_percent
 
+let get_precision_value precision =
+  match precision with
+  | NotYet | Ignored -> None
+  | Ready -> Some 0
+  | Started len -> Some (Int.to_int len)
+
+exception Printing_zero_with_precision_zero
+
 let copy_int seen_percent conversion_specifier result arg =
   match !result with
   | LockedImprecise _ -> ()
@@ -195,6 +203,12 @@ let copy_int seen_percent conversion_specifier result arg =
     try
       let i = Cvalue.V.project_ival arg in
       let i = Ival.project_int i in
+      if Integer.is_zero i then
+        ( match seen_percent with
+          Seen (_, _, precision, _, _) when
+              get_precision_value precision = Some 0 ->
+            raise Printing_zero_with_precision_zero
+        | _ -> () );
       let i =
         if Int.gt i Int.max_int64 then Int.sub i Int.two_power_64 else i
       in
@@ -206,12 +220,14 @@ let copy_int seen_percent conversion_specifier result arg =
       Buffer.add_string buffer i
     with
       Ival.Not_Singleton_Int | Cvalue.V.Not_based_on_null ->
-    lock_imprecise result
+        lock_imprecise result
+    | Printing_zero_with_precision_zero -> ()
+
     (* TODO: catch exception of Integer.to_int64  *)
     (* TODO: add test case for an unsigned long int n > 2^63 (gives neg value?) *)
     (* TODO: What happens if long int is 128 bits long? *)
 
-    let copy_float seen_percent conversion_specifier result arg =
+let copy_float seen_percent conversion_specifier result arg =
   match !result with
   | LockedImprecise _ -> ()
   | Unlocked buffer ->
@@ -508,11 +524,7 @@ let interpret_format ~character_width state l args =
             (* modifier list is exhaustive, all the other cases are undefined *)
             else do_bottom ()
           in
-          let precision = match precision with
-            | NotYet | Ignored -> None
-            | Ready -> Some 0
-            | Started(len) -> Some (Int.to_int len)
-          in
+          let precision = get_precision_value precision in
           let width = match width with
             | None -> None
             | Some a -> Some (Int.to_int a)
