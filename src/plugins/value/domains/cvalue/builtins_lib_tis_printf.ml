@@ -33,7 +33,7 @@ let bottom_result =
   { Value_types.c_values = [ None, Cvalue.Model.bottom ] ;
     c_clobbered = Base.SetLattice.bottom;
     c_cacheable = Value_types.NoCache;
-    c_from = None; (* TODO?*) 
+    c_from = None; (* TODO?*)
   }
 
 let alarm_behavior_raise_problem =
@@ -77,13 +77,9 @@ let copy_string ~source_char_size result state l ~precision ~width flags =
   try
     begin
       while true do
-        let _ = match precision with
-          |None -> ()
-          |Some p ->  if !count >= p
-          then
-            raise Copy_string_done
-          else ()
-        in
+        ( match precision with
+        | Some p when !count >= p -> raise Copy_string_done
+        | _ -> ());
         let loc = Locations.make_loc !l sizeofchar_size in
         let c = Eval_op.find ~with_alarms state loc in
         let c = Cvalue.V.project_ival c in
@@ -171,6 +167,27 @@ let format_of_seen_percent seen_percent length_modifier conversion_specifier =
     Printf.sprintf "%%%s%s%s%s%c"
       flags width precision length_modifier conversion_specifier
 
+(* this function in only needed to work around:
+   http://caml.inria.fr/mantis/view.php?id=6938
+   remove when the oldest supported version is fixed.
+   Or maybe don't if the warning is useful. *)
+let ignore_zero_if_precision seen_percent =
+  match seen_percent with
+  | Seen (flags, width, (Ready | Started _ as precision), modi, was_star)
+      when String.contains flags '0' ->
+    Value_parameters.warning ~current:true ~once:true
+      "both '0' flag and precision when printing integer. Ignoring '0' flag";
+    let i = ref 0 in
+    let rec f x =
+      let ii = !i in
+      let flag = flags.[ii] in
+      i := succ ii;
+      if flag = '0' then f x else flag
+    in
+    let flags = String.init (pred (String.length flags)) f in
+    Seen(flags, width, precision, modi, was_star)
+  | _ -> seen_percent
+
 let copy_int seen_percent conversion_specifier result arg =
   match !result with
   | LockedImprecise _ -> ()
@@ -182,6 +199,7 @@ let copy_int seen_percent conversion_specifier result arg =
         if Int.gt i Int.max_int64 then Int.sub i Int.two_power_64 else i
       in
       let i = Integer.to_int64 i in
+      let seen_percent = ignore_zero_if_precision seen_percent in
       let fmt = format_of_seen_percent seen_percent "L" conversion_specifier in
       let fmt = Scanf.format_from_string fmt "%Ld" in
       let i = Format.sprintf fmt i in
@@ -368,7 +386,11 @@ let interpret_format ~character_width state l args =
         ( match c with
         | '+' | '-' | '0' | '#' | ' '
             when width = None && precision = NotYet && modifier = "" ->
-          seen_percent :=
+          if String.contains flags c
+          then Value_parameters.warning ~current:true ~once:true
+            "repeated flag '%c' in format" c
+          else
+            seen_percent :=
             Seen(catc flags, None, NotYet, "", false)
         | '.' when modifier = "" && precision = NotYet ->
           seen_percent :=
@@ -486,19 +508,20 @@ let interpret_format ~character_width state l args =
             (* modifier list is exhaustive, all the other cases are undefined *)
             else do_bottom ()
           in
-          let prec = match precision with
-            |NotYet | Ignored -> None
-            |Ready -> Some(0)
-            |Started(len) -> Some(Int.to_int len)
+          let precision = match precision with
+            | NotYet | Ignored -> None
+            | Ready -> Some 0
+            | Started(len) -> Some (Int.to_int len)
           in
-          let w = match width with
+          let width = match width with
             | None -> None
-            | Some a -> Some(Int.to_int a)
+            | Some a -> Some (Int.to_int a)
           in
           let arg = eat_arg_and_reset_seen_percent types [] in begin
             match flags with
             | "-" | "" ->
-              copy_string ~source_char_size result state arg ~precision:prec ~width:w flags
+              copy_string ~source_char_size ~precision ~width
+                result state arg flags
             | f ->
               (* All the flags except  "-" and "" result in an undefined behaviour *)
               Value_parameters.error ~current:true
