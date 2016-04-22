@@ -97,16 +97,16 @@ struct addrinfo
 # define NI_DGRAM	16	/* Look up UDP service rather than TCP.  */
 # define NI_NUMERICSCOPE 32
 
-# define EAI_BADFLAGS	  -1	/* Invalid value for `ai_flags' field.  */
-# define EAI_NONAME	  -2	/* NAME or SERVICE is unknown.  */
-# define EAI_AGAIN	  -3	/* Temporary failure in name resolution.  */
-# define EAI_FAIL	  -4	/* Non-recoverable failure in name res.  */
-# define EAI_FAMILY	  -6	/* `ai_family' not supported.  */
-# define EAI_SOCKTYPE	  -7	/* `ai_socktype' not supported.  */
-# define EAI_SERVICE	  -8	/* SERVICE not supported for `ai_socktype'.  */
-# define EAI_MEMORY	  -10	/* Memory allocation failure.  */
-# define EAI_SYSTEM	  -11	/* System error returned in `errno'.  */
-# define EAI_OVERFLOW	  -12	/* Argument buffer overflow.  */
+# define EAI_BADFLAGS	  (-1)	/* Invalid value for `ai_flags' field.  */
+# define EAI_NONAME	  (-2)	/* NAME or SERVICE is unknown.  */
+# define EAI_AGAIN	  (-3)	/* Temporary failure in name resolution.  */
+# define EAI_FAIL	  (-4)	/* Non-recoverable failure in name res.  */
+# define EAI_FAMILY	  (-6)	/* `ai_family' not supported.  */
+# define EAI_SOCKTYPE	  (-7)	/* `ai_socktype' not supported.  */
+# define EAI_SERVICE	  (-8)	/* SERVICE not supported for `ai_socktype'.  */
+# define EAI_MEMORY	  (-10)	/* Memory allocation failure.  */
+# define EAI_SYSTEM	  (-11)	/* System error returned in `errno'.  */
+# define EAI_OVERFLOW	  (-12)	/* Argument buffer overflow.  */
 
 void endhostent(void);
 void endnetent(void);
