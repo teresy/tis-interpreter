@@ -369,8 +369,7 @@ let warn_right_exp_imprecision ~with_alarms lv loc_lv exp_val =
    left-hand side and the right-hand side of an assignment overlap *)
 let warn_overlap ~with_alarms (lv, left_loc) (exp_lv, right_loc) =
   let big_enough size =
-    try Integer.gt size (Integer.of_int (Cil.bitsSizeOf Cil.intType))
-    with Cil.SizeOfError _ -> true
+    ignore (size);true
   in
   if with_alarms.CilE.others.CilE.a_log then
     match right_loc.size with
