@@ -119,7 +119,6 @@ module SplitGlobalStrategy: State_builder.Ref with type data = Split_strategy.t
 
 module ValShowProgress: Parameter_sig.Bool
 module ValShowInitialState: Parameter_sig.Bool
-module FloatTimingStep: State_builder.Ref with type data = float
 module ValShowPerf: Parameter_sig.Bool
 module ValStatistics: Parameter_sig.Bool
 module ShowSlevel: Parameter_sig.Int

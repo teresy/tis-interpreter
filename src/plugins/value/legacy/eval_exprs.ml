@@ -635,8 +635,8 @@ and reduce_by_accessed_loc ~for_writing state lv loc =
 	  V_Or_Uninitialized.remove_indeterminateness loc state
       else state
     in
-    let result = Eval_op.make_volatile ~typ:typ_lv result in
-    let result = Eval_typ.cast_lval_if_bitfield typ_lv loc.size result in
+    let result1 = Eval_op.make_volatile ~typ:typ_lv result in
+    let result = Eval_typ.cast_lval_if_bitfield typ_lv loc.size result1 in
     let state, loc =
       warn_reduce_by_accessed_loc ~with_alarms ~for_writing:false state loc lv
     in

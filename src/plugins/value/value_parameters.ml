@@ -942,24 +942,6 @@ module ValShowInitialState =
      end)
 
 let () = Parameter_customize.set_group messages
-module TimingStep =
-  Int
-    (struct
-       let option_name = "-val-show-time"
-       let default = 0
-       let arg_name = "n"
-       let help = "Prints the time spent analyzing function calls, when it exceeds <n> seconds"
-     end)
-module FloatTimingStep = 
-  State_builder.Float_ref 
-    (struct
-       let default () = Pervasives.infinity
-       let name = "Value_parameters.FloatTimingStep"
-       let dependencies = [TimingStep.self]
-     end)
-let () = TimingStep.add_set_hook (fun _ x -> FloatTimingStep.set (float x))
-
-let () = Parameter_customize.set_group messages
 module ValShowPerf =
   False
     (struct

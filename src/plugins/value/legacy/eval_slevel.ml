@@ -629,7 +629,11 @@ of function %a which have not been stored." Kernel_function.pretty current_kf;
                 built-in %s impossible: arguments malformed" va_builtin_name
 
           | Call (lval_to_assign,funcexp,argl,_loc) ->
-            propagate (interp_call store_before_after stmt lval_to_assign funcexp argl d_states)
+	    let states_after_call =
+	      interp_call
+		store_before_after stmt lval_to_assign funcexp argl d_states
+	    in
+            propagate states_after_call
           | Asm _ ->
               warning_once_current
                 "assuming assembly code has no effects in function %t"

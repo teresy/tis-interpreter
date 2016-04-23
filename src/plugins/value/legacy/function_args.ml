@@ -247,7 +247,8 @@ let compute_actual ~with_alarms ~warn_indeterminate state e =
       with Int_Base.Error_Top ->
         Value_parameters.abort ~current:true "Function argument %a has \
             unknown size. Aborting" Printer.pp_exp e;
-    in begin
+    in
+    begin
       match o with
       | `Map o ->
         let typ_lv = Cil.typeOfLval lv in

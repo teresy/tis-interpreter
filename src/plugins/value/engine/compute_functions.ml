@@ -59,45 +59,8 @@ module Make
      is the instruction at which the call takes place, and is used to update
      the statuses of the preconditions of [kf]. If [show_progress] is true,
      the callstack and additional information are printed. *)
-  let compute_using_spec_or_body call_kinstr kf state =
-    Value_results.mark_kf_as_called kf;
-    let global = match call_kinstr with Kglobal -> true | _ -> false in
-    let pp = not global && Value_parameters.ValShowProgress.get () in
-    let entry_time = if pp then Unix.time () else 0. in
-    if pp then
-      Value_parameters.feedback
-        "@[computing for function %a.@\nCalled from %a.@]"
-        Value_util.pretty_call_stack_short (Value_util.call_stack ())
-        Cil_datatype.Location.pretty (Cil_datatype.Kinstr.loc call_kinstr);
-    let use_spec = match kf.fundec with
-      | Declaration (_,_,_,_) -> `Spec (Annotations.funspec kf)
-      | Definition (def, _) ->
-        if Kernel_function.Set.mem kf (Value_parameters.UsePrototype.get ())
-        then `Spec (Annotations.funspec kf)
-        else `Def def
-    in
-    let cvalue_state = get_cvalue state
-    and call_stack = Value_util.call_stack () in
-    let result = match use_spec with
-      | `Spec spec ->
-        Db.Value.Call_Type_Value_Callbacks.apply (`Spec, cvalue_state, call_stack);
-        Domain.compute_using_specification call_kinstr (kf, spec) state,
-        Value_types.Cacheable
-      | `Def _fundec ->
-        Db.Value.Call_Type_Value_Callbacks.apply (`Def, cvalue_state, call_stack);
-        Computer.compute kf call_kinstr state
-    in
-    if pp then begin
-      let compute_time = (Unix.time ()) -. entry_time in
-      if compute_time > Value_parameters.FloatTimingStep.get ()
-      then Value_parameters.feedback "Done for function %a, in %a seconds."
-          Kernel_function.pretty kf
-          Datatype.Float.pretty  compute_time
-      else Value_parameters.feedback "Done for function %a"
-          Kernel_function.pretty kf
-    end;
-    result
-
+  let compute_using_spec_or_body _call_kinstr _kf _state =
+    assert false
 
   (* Mem Exec *)
 

@@ -1,3 +1,7 @@
+autom4te.cache
+*.orig
+*.rej
+a.out
 TAGS
 *.generated
 *.cmi

@@ -94,7 +94,13 @@ let compute_using_specification (kf, spec) ~call_kinstr ~with_formals () =
   end;
   Value_parameters.feedback ~once:true "@[using specification for function %a@]"
     Kernel_function.pretty kf;
-  let compute_fun = if List.length spec.spec_behavior > 1
+  let several_behaviors =
+    match spec.spec_behavior with
+    | [] | [ _ ] -> false
+    | _ -> true
+  in
+  let compute_fun =
+    if several_behaviors
     then Eval_behaviors.compute_using_specification_multiple_behaviors
     else Eval_behaviors.compute_using_specification_single_behavior
   in
@@ -109,7 +115,6 @@ let compute_using_specification (kf, spec) ~call_kinstr ~with_formals () =
 let compute_using_spec_or_body ~with_formals ~call_kinstr ~show_progress kf =
   Value_results.mark_kf_as_called kf;
   let pp = show_progress && Value_parameters.ValShowProgress.get() in
-  let entry_time = if pp then Sys.time () else 0. in
   let loc = match call_kinstr with 
     | Kglobal -> (* For an entry point, the current location
                     is its declaration.*)
@@ -130,23 +135,19 @@ let compute_using_spec_or_body ~with_formals ~call_kinstr ~show_progress kf =
       then `Spec (Annotations.funspec kf)
       else `Def def
   in
-  let result =  match use_spec with
+  let result =
+    match use_spec with
     | `Spec spec ->
-       Db.Value.Call_Type_Value_Callbacks.apply (`Spec, with_formals, call_stack());
+       Db.Value.Call_Type_Value_Callbacks.apply
+	 (`Spec, with_formals, call_stack());
         compute_using_specification (kf, spec) ~call_kinstr ~with_formals ()
     | `Def f ->
-       Db.Value.Call_Type_Value_Callbacks.apply (`Def, with_formals, call_stack());
+       Db.Value.Call_Type_Value_Callbacks.apply
+	 (`Def, with_formals, call_stack());
         compute_using_body (kf, f) ~call_kinstr ~with_formals
   in
-  if pp then begin
-    let compute_time = (Sys.time ()) -. entry_time in
-      if compute_time > Value_parameters.FloatTimingStep.get ()
-      then Value_parameters.feedback "Done for function %a, in %a seconds."
-             Kernel_function.pretty kf
-             Datatype.Float.pretty  compute_time
-      else Value_parameters.feedback "Done for function %a"
-             Kernel_function.pretty kf
-  end;
+  if pp then 
+    Value_parameters.feedback "Done for function %a" Kernel_function.pretty kf;
   result
 
 exception R of int
@@ -263,7 +264,7 @@ let do_compute_from_entry_point kf library () =
        Value_parameters.feedback "Initial state computed";
        if Value_parameters.ValShowInitialState.get ()
        then
-	 Value_parameters.printf
+         Value_parameters.printf
            ~header:(fun fmt -> Format.pp_print_string fmt
                        "Values of globals at initialization")
            "@[  %a@]" Db.Value.pretty_state r;
@@ -332,28 +333,33 @@ let do_compute_maybe_builtin kf ~state actuals () =
         let typ = typeOf exp in
         Valarms.set_syntactic_context (Valarms.SyUnOp exp);
         let v = Eval_op.v_of_offsetmap ~with_alarms ~typ offsm in
-        (exp, v, offsm)
+        let v =
+          match exp.enode with
+          | Lval lv ->
+             let typ_lv = Cil.typeOfLval lv in
+             let size = Eval_typ.sizeof_lval_typ typ_lv in
+             Eval_typ.cast_lval_if_bitfield typ_lv size v
+          | _ -> v
+        in
+        exp, v, offsm
       in
-      let actuals = lazy (
-        let with_alarms = warn_all_quiet_mode () in
-        List.map (conv_arg with_alarms) actuals
-      )
-      in
+      let with_alarms = warn_all_quiet_mode () in
+      let actuals = List.map (conv_arg with_alarms) actuals in
       try
-         Some (abstract_function state (Lazy.force actuals))
+         Some (abstract_function state actuals)
       with
       | Builtins.Invalid_nb_of_args n ->
         Value_parameters.error ~current:true
          "Invalid number of arguments for builtin %s: %d expected, %d found"
-         name n (List.length (Lazy.force actuals));
+         name n (List.length actuals);
         raise Db.Value.Aborted
       | Db.Value.Outside_builtin_possibilities ->
         if override then None
-        else (
+        else begin
           Value_parameters.warning ~once:true ~current:true
             "Call to builtin %s failed, aborting." name;
           raise Db.Value.Aborted
-        )
+        end
 
 let compute_maybe_builtin kf ~state actuals =
   Value_stat.measure_builtin (do_compute_maybe_builtin kf ~state actuals)
@@ -377,11 +383,11 @@ let compute_non_recursive_call kf ~call_kinstr state actuals =
     let default () = 
       let r = compute_maybe_builtin kf ~state actuals in
       let r = match r with
-	| Some r -> 
+        | Some r ->
            Db.Value.Call_Type_Value_Callbacks.apply
              (`Builtin r, with_formals, stack_with_call);
            r
-	| None ->
+        | None ->
             compute_using_spec_or_body kf
               ~with_formals ~call_kinstr ~show_progress:true
       in
@@ -402,13 +408,13 @@ let compute_non_recursive_call kf ~call_kinstr state actuals =
     let r =
       let call_site = (kf, call_kinstr) in
       if Value_parameters.MemExecAll.get () then
-	match Mem_exec.reuse_previous_call call_site with_formals actuals with
-	  | None ->
+        match Mem_exec.reuse_previous_call call_site with_formals actuals with
+          | None ->
             let res = default () in
             if not (!Db.Value.use_spec_instead_of_definition kf) then
               Mem_exec.store_computed_call call_site with_formals actuals res;
             res
-	  | Some (res, i) ->
+          | Some (res, i) ->
              Db.Value.Call_Type_Value_Callbacks.apply
                (`Memexec, with_formals, stack_with_call);
             Value_stat.measure_memexec_hit ();
@@ -424,9 +430,9 @@ let compute_non_recursive_call kf ~call_kinstr state actuals =
             end;
             if Value_parameters.ValShowProgress.get () then begin
               Value_parameters.feedback ~current:true
-		"Reusing old results for call to %a" Kernel_function.pretty kf;
+                "Reusing old results for call to %a" Kernel_function.pretty kf;
               Value_parameters.debug ~dkey
-		"calling Record_Value_New callbacks on saved previous result";
+                "calling Record_Value_New callbacks on saved previous result";
             end;
             Db.Value.Record_Value_Slevel_Callbacks.apply
               (stack_with_call, Value_types.Reuse i);
@@ -434,7 +440,7 @@ let compute_non_recursive_call kf ~call_kinstr state actuals =
               (stack_with_call, Value_types.Reuse i);
             res
       else
-	default ()
+        default ()
     in
     pop_call_stack ();
     r
