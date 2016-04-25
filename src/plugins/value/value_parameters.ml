@@ -501,10 +501,11 @@ let () = InitializedPaddingGlobals.add_update_hook
     
 let () = Parameter_customize.set_group initial_context
 module EntryPointArgs =
-  String_list
+  String
     (struct
        let option_name = "-val-args"
        let arg_name = "arg_1,..,arg_k"
+       let default = ""
        let help = "Pass arguments to the entry point function. If the \
          entry point has type int (int argc, char** argv), start analysis \
          with argc bound to k+1 and argv pointing to a NULL-terminated array \

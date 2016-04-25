@@ -96,7 +96,7 @@ module TotalPtrComparison : Parameter_sig.Bool
 
 module DisableConstructors: Parameter_sig.Bool
 
-module EntryPointArgs: Parameter_sig.String_list
+module EntryPointArgs: Parameter_sig.String
 module ProgramName: Parameter_sig.String
 
 module UndefinedPointerComparisonPropagateAll: Parameter_sig.Bool

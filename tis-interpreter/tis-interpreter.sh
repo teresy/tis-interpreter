@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 __error() {
 echo "$@" >&2
@@ -122,7 +122,7 @@ local common_files="\
 local compiler=cc
 local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -I $ROOT_PATH/filesystem -dD -DTIS_INTERPRETER -D__FC_MACHDEP_X86_64"
 
-local others=""
+declare -a others
 
 while [ ! "X$1" = "X" ];
 do
@@ -143,7 +143,7 @@ do
             gui="1";;
 
         *)
-            others="$others $1"
+            others=("${others[@]}" "$1")
     esac
     shift
 done
@@ -152,7 +152,7 @@ local final_compiler="$compiler $compiler_opts"
 
 if [ "Q$preprocess_only" = "Q1" ];
 then
-    for file in $others;
+    for file in "${others[@]}";
     do
         case "$file" in
             -*);;
@@ -171,7 +171,7 @@ else
 
     exec $frama_c_binary -cpp-command="$final_compiler" \
                           $options $builtins $common_files \
-                          $fc_runtime $others
+                          $fc_runtime "${others[@]}";
 fi
 
 }

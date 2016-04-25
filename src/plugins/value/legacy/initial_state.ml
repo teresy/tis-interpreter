@@ -439,6 +439,13 @@ let initialize_args argc_varinfo argv_varinfo state =
   let args =
     let program_name = Value_parameters.ProgramName.get () in
     let command_line_args = Value_parameters.EntryPointArgs.get () in
+    let command_line_args =
+      if command_line_args = ""
+      then []
+      else
+	let r = Str.regexp (Str.quote (String.make 1 command_line_args.[0])) in
+	Str.split r command_line_args
+    in
     program_name :: command_line_args
   in
   
