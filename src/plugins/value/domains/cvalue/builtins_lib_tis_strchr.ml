@@ -22,8 +22,8 @@ open Value_util
 (* strchr builtin *)
 exception Abort_to_top
 
-module Aux = Builtins_lib_tis_aux
-open Aux.StringAndArrayUtilities
+open Builtins_lib_tis_aux
+open StringAndArrayUtilities
 
 (* TODO: Required for abstract_strcpy to avoid a forward reference. *)
 open Strlen
@@ -32,7 +32,8 @@ type strchr_alarm_context = {
   strchr_alarm_invalid_string : unit -> unit
 }
 
-let abstract_strchr ~(emit_alarm : strchr_alarm_context) ~character_bits str initial_chr_to_locate state =
+let abstract_strchr ~(emit_alarm : strchr_alarm_context) ~character_bits str
+    initial_chr_to_locate state =
     (* Checks whether the call to strchr would cause undefined behavior:
        Calls emit_alarm (e.g. to emit \valid_string(...)) if anything at all
        is wrong.
@@ -53,7 +54,8 @@ let abstract_strchr ~(emit_alarm : strchr_alarm_context) ~character_bits str ini
              start from min of ival, look successively at each char
              -> if the char may contain one we are looking for,
              then accumulate current address into current_possible_addr
-             -> if the current char is a singleton, then we are sure we got a hit,
+             -> if the current char is a singleton,
+             then we are sure we got a hit,
              and we remove this char from char_to_locate.
              -> a possible zero char means the string can end here.
              This validates the candidates in current_possible_addr as
@@ -199,7 +201,8 @@ let abstract_strchr ~(emit_alarm : strchr_alarm_context) ~character_bits str ini
       in
       let accumulate_one_offsetmap base ival acc =
         let offsets = do_one_offsetmap base ival in
-        let char_bits = Bit_utils.sizeofchar () in (* CHECK! Is this right? *)
+        let char_bits = Bit_utils.sizeofchar () in (* only for the conversion
+						      of the initial loc_bytes *)
         let locs = Locations.Location_Bytes.inject base
           (Ival.scale_div true char_bits offsets)
         in
@@ -272,8 +275,10 @@ let tis_strchr ~str_or_wcs state actuals =
     raise Db.Value.Aborted
 
 
-let () = Builtins.register_builtin "tis_strchr" (tis_strchr ~str_or_wcs:Character)
-let () = Builtins.register_builtin "tis_wcschr" (tis_strchr ~str_or_wcs:WideCharacter)
+let () = Builtins.register_builtin "tis_strchr"
+  (tis_strchr ~str_or_wcs:Character)
+let () = Builtins.register_builtin "tis_wcschr"
+  (tis_strchr ~str_or_wcs:WideCharacter)
 
 (* strcpy also placed in this file because it is used for strcat
    (also in this file) *)
@@ -290,7 +295,7 @@ type strcpy_alarm_context = {
 let abstract_strcpy ~(character_bits : Integer.t) ~(emit_alarm : strcpy_alarm_context)
   (dst : Location_Bits.t) (src : Location_Bits.t) (state : Cvalue.Model.t) =
 
-  (* TODO: strcpy should emit a warning if there are addressed in the source
+  (* TODO: strcpy should emit a warning if there are addresses in the source
      string. That's because an address read as characters can contain a zero
      character, thus changing the behavior of strcpy in an indeterminate way. *)
 
@@ -299,20 +304,24 @@ let abstract_strcpy ~(character_bits : Integer.t) ~(emit_alarm : strcpy_alarm_co
 
   let valid_strings_with_length : (Location_Bits.t * Ival.t) list =
     try
-      Location_Bits.fold_enum (fun singleton_str valid_strings_with_length_acc ->
-        let singleton_str_bytes = Locations.loc_bits_to_loc_bytes singleton_str in
+      Location_Bits.fold_enum
+	(fun singleton_str valid_strings_with_length_acc ->
+          let singleton_str_bytes = Locations.loc_bits_to_loc_bytes singleton_str
+	  in
         (* The location should be a singleton as we are using "fold_enum". *)
-        let _base, _ival =
-          try Location_Bits.find_lonely_binding singleton_str
-          with Not_found -> assert false
-        in
-        (* Check if the string is valid and get its length using "abstract_strlen". *)
+          let _base, _ival =
+            try Location_Bits.find_lonely_binding singleton_str
+            with Not_found -> assert false
+          in
+        (* Check if the string is valid and get its length using
+	   abstract_strlen. *)
         let str_length : Ival.t =
           (* No max string size. *)
           let max = str_infinity in
           let abstract_strlen = get_abstract_strlen () in
           let emit_alarm = emit_alarm.strcpy_alarm_strlen_alarm_context in
-          abstract_strlen ~character_bits ~max ~emit_alarm singleton_str_bytes state
+          abstract_strlen ~character_bits ~max ~emit_alarm
+	    singleton_str_bytes state
         in
         (* Proceed with the string or skip it. *)
         if Ival.is_bottom str_length
@@ -323,7 +332,8 @@ let abstract_strcpy ~(character_bits : Integer.t) ~(emit_alarm : strcpy_alarm_co
           (* Skip the string. *)
           valid_strings_with_length_acc
         end else begin
-          (* This string is valid: add it to the list together with the length info! *)
+          (* This string is valid:
+	     add it to the list together with the length info! *)
           (singleton_str, str_length) :: valid_strings_with_length_acc
         end
       ) src []
@@ -356,14 +366,35 @@ let abstract_strcpy ~(character_bits : Integer.t) ~(emit_alarm : strcpy_alarm_co
         Value_parameters.debug "original length: %a" Ival.pretty src_length;
         let size = Ival.add_int src_length Ival.one in
         Value_parameters.debug "updated  length: %a" Ival.pretty size;
+	let w =
+	  let total_size_in_bits = Ival.scale character_bits size in
+	  ( match overlap_status_loc_bits ~size_in_bytes:false
+	      dst total_size_in_bits
+	      src total_size_in_bits
+	    with
+	    | Overlap
+	    | MayOverlap -> true
+	    | Separated -> false)
+	in
+	if w then
+          Value_parameters.warning ~current:true ~once:true
+            "possible overlapping memory zones in call to str/wcscpy. \
+             assert(no overlap between source and destination objects)%t"
+	    Value_util.pp_callstack;
+        (** TODO: Add assert message **)
+
         (* Perform this source to the destination using memcpy. *)
         let state_after_memcpy : Cvalue.Model.t =
           let abstract_memcpy = Builtins_lib_tis_memcpy.abstract_memcpy in
           let emit_alarm = emit_alarm.strcpy_alarm_memcpy_alarm_context in
-          abstract_memcpy ~exact ~emit_alarm ~character_bits ~size src_bytes dst_bytes state
+          abstract_memcpy ~exact ~emit_alarm ~character_bits ~size src_bytes
+	    dst_bytes state
         in
-        (* Was this source copied correctly? *) (* TODO: Is this the right way of checking? *)
-        let was_memcpy_successful = Cvalue.Model.is_reachable state_after_memcpy in
+        (* Was this source copied correctly? *)
+	(* TODO: Is this the right way of checking? *)
+        let was_memcpy_successful =
+	  Cvalue.Model.is_reachable state_after_memcpy
+	in
         if was_memcpy_successful
         then begin
           (* The copy succeeded: set the flag. *)
@@ -386,7 +417,6 @@ let abstract_strcpy ~(character_bits : Integer.t) ~(emit_alarm : strcpy_alarm_co
     then new_state
     else Cvalue.Model.bottom
   in
-
   state
 
 (* Implements built-ins:
@@ -459,16 +489,19 @@ let tis_strcpy ~str_or_wcs state actuals =
   | _ ->
     raise Db.Value.Aborted
 
-let () = Builtins.register_builtin "tis_strcpy" (tis_strcpy ~str_or_wcs:Character)
-let () = Builtins.register_builtin "tis_wcscpy" (tis_strcpy ~str_or_wcs:WideCharacter)
+let () = Builtins.register_builtin "tis_strcpy"
+  (tis_strcpy ~str_or_wcs:Character)
+let () = Builtins.register_builtin "tis_wcscpy"
+  (tis_strcpy ~str_or_wcs:WideCharacter)
 
 type strcat_alarm_context = {
   strcat_alarm_strchr_alarm_context : strchr_alarm_context;
   strcat_alarm_strcpy_alarm_context : strcpy_alarm_context;
 }
 
-let abstract_strcat ~(character_bits : Integer.t) ~(emit_alarm : strcat_alarm_context)
-  (str1 : Location_Bits.t) (str2 : Location_Bits.t) (state : Cvalue.Model.t) =
+let abstract_strcat
+    ~(character_bits : Integer.t) ~(emit_alarm : strcat_alarm_context)
+    (str1 : Location_Bits.t) (str2 : Location_Bits.t) (state : Cvalue.Model.t) =
 
   (* Use strchr to get a pointer to the zero byte terminating the first string. *)
   let str1_zero_terminator_ptr =
@@ -566,8 +599,10 @@ let tis_strcat ~str_or_wcs state actuals =
   | _ ->
     raise Db.Value.Aborted
 
-let () = Builtins.register_builtin "tis_strcat" (tis_strcat ~str_or_wcs:Character)
-let () = Builtins.register_builtin "tis_wcscat" (tis_strcat ~str_or_wcs:WideCharacter)
+let () = Builtins.register_builtin "tis_strcat"
+  (tis_strcat ~str_or_wcs:Character)
+let () = Builtins.register_builtin "tis_wcscat"
+  (tis_strcat ~str_or_wcs:WideCharacter)
 
 (*
   Local Variables:

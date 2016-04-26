@@ -504,15 +504,14 @@ module EntryPointArgs =
   String
     (struct
        let option_name = "-val-args"
-       let arg_name = "arg_1,..,arg_k"
+       let arg_name = "\" arg_1 arg_2 … arg_k\""
        let default = ""
        let help = "Pass arguments to the entry point function. If the \
-         entry point has type int (int argc, char** argv), start analysis \
+         entry point has type int (int argc, char * argv[]), start analysis \
          with argc bound to k+1 and argv pointing to a NULL-terminated array \
-         of pointers to strings \"<program_name>\",\"<arg_1>\",..., \"<arg_k>\" \
-         (where <program_name> is by default equal to \"program\", but it \
-         can be set explicitly to another value using the option \
-         -val-program-name)."
+         of pointers to strings \"program\",\"arg_1\",..., \"arg_k\". \
+         The first character is used as separator to split the arguments, \
+         a space works well in the common cases."
      end)
 
 let () = Parameter_customize.set_group initial_context
