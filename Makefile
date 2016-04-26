@@ -138,7 +138,7 @@ ifeq ($(DEVELOPMENT),yes)
 ifeq ($(WARN_ERROR_ALL),yes) # To be set on the command-line
 DEV_WARNINGS= -warn-error +a
 else
-DEV_WARNINGS= -warn-error +a-32-33-34-35-36-37-38-39
+DEV_WARNINGS= -warn-error +a-32-33-34-35-36-37-38-39-52-57-58
 endif #WARN_ERROR_ALL
 DEV_FLAGS=$(FLAGS) $(DEV_WARNINGS)
 else
