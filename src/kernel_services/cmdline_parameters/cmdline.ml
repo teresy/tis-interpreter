@@ -108,7 +108,7 @@ let get_backtrace () =
   current_src_string ^ "The full backtrace is:\n" ^ bt
 
 let request_crash_report =
-    "Please report at https://support.trust-in-soft.com\n"
+    "Please report at https://github.com/TrustInSoft/tis-interpreter/issues"
 
 let protect = function
   | Sys.Break -> 
