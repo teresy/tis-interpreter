@@ -99,6 +99,6 @@ void *calloc(size_t nmemb, size_t size)
 {
   size_t l = nmemb * size;
   char *p = malloc(l);
-  Frama_C_memset(p, 0, l);
+  if (l > 0) tis_memset(p, 0, l);
   return p;
 }

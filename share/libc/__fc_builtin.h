@@ -158,19 +158,16 @@ double Frama_C_double_interval(double min, double max);
 /*@ assigns ((char *)dest)[0..n-1] \from ((char *)src)[0..n-1];
     assigns \result \from dest; 
 */
-void* Frama_C_memcpy(void *dest, const void *src, size_t n);
+void* tis_memcpy(void *dest, const void *src, size_t n);
 
 /*@ assigns ((char*)p)[0 .. s-1] \from c ; assigns \result \from p; */
-void* Frama_C_memset(void *p, int c, size_t s);
+void* tis_memset(void *p, int c, size_t s);
 
 /*@ // Signals an error;
   requires \false;
   assigns \nothing;
 */
 void Frama_C_abort(void) __attribute__ ((noreturn));
-
-/*@ assigns \result \from p; */
-size_t Frama_C_offset(const void* p);
 
 void *Frama_C_alloc_size(size_t size);
 __END_DECLS

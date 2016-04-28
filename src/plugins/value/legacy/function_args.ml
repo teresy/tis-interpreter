@@ -206,10 +206,7 @@ let main_initial_state_with_formals kf (state:Cvalue.Model.t) =
       (* Check if argv type is char**. *)
       let is_argv_of_correct_type argv_varinfo =
         match Cil.unrollType argv_varinfo.vtype with
-        | TPtr (t, []) ->
-           ( match Cil.unrollType t with
-           | TPtr(t, []) when Cil.unrollType t = TInt(IChar, []) -> true
-           | _ -> false)
+        | TPtr (t, []) when Cil.isCharPtrType t -> true
         | _ -> false
       in
       (* Check if both argc and argv have correct types. *)
