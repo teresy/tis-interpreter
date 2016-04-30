@@ -589,7 +589,7 @@ let pretty_english ~prefix fmt { loc = m ; size = size } =
 	      Int.equal (Int.succ s1) s2 ->
 	    Format.fprintf fmt "@[<h>%a@]" Base.pretty k
         | _ ->
-            Format.fprintf fmt "@[<h>%a with offsets %a@]"
+            Format.fprintf fmt "@[<h>%a with offsets %a in bits@]"
 	      Base.pretty k
 	      Ival.pretty v)
       in
