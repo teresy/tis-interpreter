@@ -9,6 +9,24 @@ char *strdup(const char *s)
   return p;
 }
 
+// stpcpy is POSIX.1-2008
+#ifdef _POSIX_C_SOURCE
+# if _POSIX_C_SOURCE >= 200809L
+char *stpcpy(char * dest, const char * from)
+{
+  char c;
+  while (1) {
+    c = *from;
+    *dest = c;
+    if (!c) break;
+    from++;
+    dest++;
+  }
+  return dest;
+}
+# endif
+#endif
+
 /*
  * Copy s2 to s1, truncating or null-padding to always copy n bytes
  * return s1
