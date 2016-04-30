@@ -194,7 +194,7 @@ let init =
             "\\pointer_comparable", [], [("p1", object_ptr);
                                          ("p2", fun_ptr)];
             "\\points_to_valid_string", [], ["p", object_ptr];
-            "\\stays_inside_object", [], ["p", object_ptr];
+            "\\inside_object", [], ["p", object_ptr];
 	    "\\warning", [], [("str", string_type)];
           ];
         (* functions *)

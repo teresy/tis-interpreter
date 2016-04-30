@@ -32,7 +32,7 @@ open Abstract_interp
 let offsetmap_of_v ~typ v =
   let size = Int.of_int (Cil.bitsSizeOf typ) in
   let v = V_Or_Uninitialized.initialized v in
-  V_Offsetmap.create ~size v ~size_v:size 
+  V_Offsetmap.create ~size v ~size_v:size
 
 let wrap_int i = Some (offsetmap_of_v ~typ:Cil.intType i)
 let wrap_ptr p = Some (offsetmap_of_v ~typ:Cil.intPtrType p)
@@ -51,8 +51,9 @@ let reinterpret_int ~with_alarms ikind v =
       Value_util.warning_once_current
         "@[Reading@ a wrong@ representation@ (%a)@ for@ type _Bool.@ \
          assert(representation of value of type _Bool is zero or one)@]%t"
-	V.pretty v Value_util.pp_callstack;
-      if Value_parameters.InterpreterMode.get() then exit 0;
+        V.pretty v Value_util.pp_callstack;
+      if Value_parameters.InterpreterMode.get()
+      then raise Db.Value.Aborted;
       V.narrow V.zero_or_one v
     end
   else
@@ -342,9 +343,9 @@ let eval_pi ~with_alarms result =
   if Value_parameters.WarnPointerArithmeticOutOfBounds.get ()
     && (not (Warn.possible_pointer ~one_past:true result))
   then begin
-    Value_util.warning_once_current "pointer arithmetic going out of bounds. assert(pointer valid or one-past)";
-    ignore (with_alarms);
-    (* TODO: emit an existing alarm; reduce *)
+    Valarms.warn_pointer_arithmetic with_alarms;
+    (* TODO: reduce; careful for reducing as this
+    alarm is also emitted for the evaluation of assigns, ... *)
     result
   end
   else result

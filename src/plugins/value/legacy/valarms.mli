@@ -53,6 +53,9 @@ val pp_current_syntactic_context : Format.formatter -> unit
 
 val do_warn: alarm_behavior -> (unit -> unit) -> unit
 
+val warn_pointer_arithmetic : warn_mode -> unit
+(** pointer arithmetic going out of bounds *)
+
 val warn_div : warn_mode -> addresses:bool -> unit
 (** division. If [addresses] holds, also emit an alarm about the denominator
     not being comparable to \null. *)

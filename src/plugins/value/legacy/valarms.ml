@@ -66,8 +66,8 @@ let local_printer: Printer.extensible_printer = object (self)
   method! code_annotation fmt ca =
     temporaries <- Cil_datatype.Varinfo.Set.empty;
     match ca.annot_content with
-    | AAssert(_, p) ->  
-      (* ignore the ACSL name *) 
+    | AAssert(_, p) ->
+      (* ignore the ACSL name *)
       Format.fprintf fmt "@[<v>@[assert@ %a;@]" self#predicate p.content;
       (* print temporary variables information *)
       if not (Cil_datatype.Varinfo.Set.is_empty temporaries) then begin
@@ -90,7 +90,7 @@ let local_printer: Printer.extensible_printer = object (self)
       temporaries <- Cil_datatype.Varinfo.Set.add vi temporaries
     );
     super#logic_var fmt lvi
-end 
+end
 
 let pr_annot = local_printer#code_annotation
 let emitter = Value_util.emitter
@@ -159,7 +159,17 @@ let register_alarm ?kf ?(status=Property_status.Dont_know) e ki a f =
   in
   let str = f annot k Value_util.pp_callstack in
   Value_messages.new_alarm ki a status annot str
-;;
+
+let warn_pointer_arithmetic warn_mode =
+   do_warn warn_mode.others
+    (fun () ->
+      match get_syntactic_context () with
+      | ki,SyBinOp (e, _, _, _) ->
+         register_alarm emitter ki (Alarms.Pointer_arithmetic e)
+             (fun annot k -> k "@[pointer arithmetic:@ %a@]%t" pr_annot annot)
+      | _,(SyNone | SyUnOp _ | SyMem _ | SyMemLogic _
+              | SySep _ | SyCallResult) ->
+         assert false)
 
 let warn_pointer_comparison typ warn_mode =
   let warn =
@@ -176,13 +186,13 @@ let warn_pointer_comparison typ warn_mode =
           (fun annot k -> k "@[pointer comparison:@ %a@]%t" pr_annot annot);
       in
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki, SyUnOp e -> aux ki None e
-	| ki, SyBinOp (_, (Eq|Ne|Ge|Le|Gt|Lt), e1, e2) -> aux ki (Some e1) e2
-	| _, SyBinOp _ ->
-	  assert false)
+        | _,SyNone -> ()
+        | _,(SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki, SyUnOp e -> aux ki None e
+        | ki, SyBinOp (_, (Eq|Ne|Ge|Le|Gt|Lt), e1, e2) -> aux ki (Some e1) e2
+        | _, SyBinOp _ ->
+          assert false)
 
 (* warn for division by 0. If [addresses] holds, also emit an alarm about the
    denominator not being comparable to \null. This is somewhat a hack, made
@@ -195,29 +205,29 @@ let warn_div warn_mode ~addresses =
     do_warn warn_mode.defined_logic
       (fun _ ->
         match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
-	  assert false
-	| _, (SyBinOp (_, (Div|Mod), _, e) as old_sc) ->
+        | _,SyNone -> ()
+        | _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
+          assert false
+        | _, (SyBinOp (_, (Div|Mod), _, e) as old_sc) ->
           (* Extract the relevant part of the syntactic context *)
           set_syntactic_context (SyUnOp e);
           warn_pointer_comparison Cil.intType warn_mode;
           (* Restore it for the 'denominator-non-null' alarm below. *)
           set_syntactic_context old_sc
-	|_, SyBinOp _ -> assert false
+        |_, SyBinOp _ -> assert false
       )
   end;
   (* Warn for a null denominator *)
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki, (SyBinOp (_, (Div|Mod), _, e)) ->
+        | _,SyNone -> ()
+        | _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki, (SyBinOp (_, (Div|Mod), _, e)) ->
            register_alarm emitter ki (Alarms.Division_by_zero e)
              (fun annot k -> k "@[division by zero:@ %a@]%t" pr_annot annot)
-	|_, SyBinOp _ -> assert false) 
+        |_, SyBinOp _ -> assert false)
 
 (* warn for division by -1 when the numerator is the minimum of a
    signed integer type *)
@@ -236,8 +246,8 @@ let warn_integer_overflow warn_mode ~signed ~min:mn ~max:mx =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| ki, (SyUnOp e | SyBinOp(e, _, _, _)) ->
-	   let signed lower bound =
+        | ki, (SyUnOp e | SyBinOp(e, _, _, _)) ->
+           let signed lower bound =
              Extlib.may_map ~dft:() (fun n ->
                let kind = if signed then Alarms.Signed else Alarms.Unsigned in
                register_alarm emitter ki
@@ -246,25 +256,25 @@ let warn_integer_overflow warn_mode ~signed ~min:mn ~max:mx =
                    k "@[%s overflow.@ %a@]%t"
                      (if signed then "signed" else "unsigned")
                      pr_annot annot)) bound
-	  in
-	  signed Alarms.Lower_bound mn;
-	  signed Alarms.Upper_bound mx
-	| _ -> assert false)
+          in
+          signed Alarms.Lower_bound mn;
+          signed Alarms.Upper_bound mx
+        | _ -> assert false)
 
 let warn_float_to_int_overflow warn_mode mn mx msg =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| ki, SyUnOp e ->
-	  let aux lower bound =
+        | ki, SyUnOp e ->
+          let aux lower bound =
             Extlib.may_map ~dft:() (fun n ->
               register_alarm emitter ki (Alarms.Float_to_int(e, n, lower))
                 (fun annot k ->
                   k "@[overflow@ in conversion@ of %t@ from@ floating-point@ \
                     to integer.@ %a@]%t" msg pr_annot annot)) bound
-	  in
-	  (aux Alarms.Lower_bound mn);
-	  (aux Alarms.Upper_bound mx)
+          in
+          (aux Alarms.Lower_bound mn);
+          (aux Alarms.Upper_bound mx)
         | _ -> assert false)
 ;;
 
@@ -272,33 +282,33 @@ let warn_shift warn_mode size =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki,SyBinOp (_, (Shiftrt | Shiftlt),_,exp_d) ->
-	   register_alarm emitter ki
+        | _,SyNone -> ()
+        | _,(SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki,SyBinOp (_, (Shiftrt | Shiftlt),_,exp_d) ->
+           register_alarm emitter ki
              (Alarms.Invalid_shift(exp_d, size))
              (fun annot k ->
                k "@[invalid RHS operand for shift.@ %a@]%t"
                  pr_annot annot)
-	| _, SyBinOp _ ->
-	  assert false)
+        | _, SyBinOp _ ->
+          assert false)
 
 let warn_shift_left_positive warn_mode =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _, (SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki, SyBinOp (_, (Shiftrt | Shiftlt),exp_l,_) ->
-	   register_alarm emitter ki
+        | _,SyNone -> ()
+        | _, (SyUnOp _ | SyMem _ | SyMemLogic _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki, SyBinOp (_, (Shiftrt | Shiftlt),exp_l,_) ->
+           register_alarm emitter ki
              (Alarms.Invalid_shift(exp_l, None))
              (fun annot k ->
                k "@[invalid LHS operand for left shift.@ %a@]%t"
                  pr_annot annot)
-	| _, SyBinOp _ ->
-	  assert false)
+        | _, SyBinOp _ ->
+          assert false)
 
 let pretty_warn_mem_mode fmt m =
   Format.pp_print_string fmt
@@ -308,31 +318,31 @@ let warn_mem warn_mode wmm =
   do_warn warn_mode.others
     (fun () ->
       let warn_term ki mk_alarm =
-	let valid = wmm in
-	register_alarm emitter ki (mk_alarm valid)
+        let valid = wmm in
+        register_alarm emitter ki (mk_alarm valid)
           (fun annot k ->
             k "@[out of bounds %a.@ %a@]%t"
               pretty_warn_mem_mode wmm pr_annot annot)
       in
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyBinOp _ | SyUnOp _ | SySep _ | SyCallResult) -> assert false
-	| ki,SyMem lv_d -> 
-	  warn_term ki (fun v -> Alarms.Memory_access(lv_d, v));
-	| ki,SyMemLogic term -> 
-	  warn_term ki (fun v -> Alarms.Logic_memory_access(term, v)))
+        | _,SyNone -> ()
+        | _,(SyBinOp _ | SyUnOp _ | SySep _ | SyCallResult) -> assert false
+        | ki,SyMem lv_d ->
+          warn_term ki (fun v -> Alarms.Memory_access(lv_d, v));
+        | ki,SyMemLogic term ->
+          warn_term ki (fun v -> Alarms.Logic_memory_access(term, v)))
 
-let warn_mem_read warn_mode = warn_mem warn_mode Alarms.For_reading 
+let warn_mem_read warn_mode = warn_mem warn_mode Alarms.For_reading
 let warn_mem_write warn_mode = warn_mem warn_mode Alarms.For_writing
 
 let warn_index warn_mode ~non_negative ~respects_upper_bound ~range =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyMem _ | SyMemLogic _ | SyUnOp _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki ,SyBinOp (_, IndexPI, e1, e2) ->
+        | _,SyNone -> ()
+        | _,(SyMem _ | SyMemLogic _ | SyUnOp _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki ,SyBinOp (_, IndexPI, e1, e2) ->
            let warn a =
              register_alarm emitter ki a
                (fun annot k ->
@@ -343,17 +353,17 @@ let warn_index warn_mode ~non_negative ~respects_upper_bound ~range =
              warn (Alarms.Index_out_of_bound(e1, None));
            if not respects_upper_bound then
              warn (Alarms.Index_out_of_bound(e1, Some e2))
-	| _, SyBinOp _ ->
-	  assert false)
+        | _, SyBinOp _ ->
+          assert false)
 
 let warn_index_for_address warn_mode ~allow_one_past ~non_negative ~respects_upper_bound ~range =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyMem _ | SyMemLogic _ | SyUnOp _ | SySep _ | SyCallResult) ->
-	  assert false
-	| ki ,SyBinOp (_, IndexPI, e1, e2) ->
+        | _,SyNone -> ()
+        | _,(SyMem _ | SyMemLogic _ | SyUnOp _ | SySep _ | SyCallResult) ->
+          assert false
+        | ki ,SyBinOp (_, IndexPI, e1, e2) ->
            let warn a =
              register_alarm emitter ki a
                (fun annot k ->
@@ -370,21 +380,21 @@ let warn_index_for_address warn_mode ~allow_one_past ~non_negative ~respects_upp
                else Alarms.Strict e2
              in
              warn (Alarms.Index_in_address(e1, k))
-	| _, SyBinOp _ ->
-	  assert false)
+        | _, SyBinOp _ ->
+          assert false)
 
 let warn_valid_string warn_mode =
   do_warn warn_mode.defined_logic
     (fun () ->
       let aux ki e =
-	register_alarm emitter ki (Alarms.Valid_string e)
+        register_alarm emitter ki (Alarms.Valid_string e)
           (fun annot k ->
             k "@[may not point to a valid string:@ %a@]%t" pr_annot annot;)
       in
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyMemLogic _ | SySep _ | SyCallResult | SyMem _ | SyBinOp _) ->
-	  assert false
+        | _,SyNone -> ()
+        | _,(SyMemLogic _ | SySep _ | SyCallResult | SyMem _ | SyBinOp _) ->
+          assert false
         | ki, SyUnOp e ->
           aux ki e)
 
@@ -392,11 +402,11 @@ let warn_pointer_subtraction warn_mode =
   do_warn warn_mode.defined_logic
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyMem _ | SyMemLogic _ | SySep _ | SyCallResult | SyUnOp _) ->
-	  assert false
-	| ki, SyBinOp (_, _, e1, e2) ->
-	   register_alarm emitter ki (Alarms.Differing_blocks (e1, e2))
+        | _,SyNone -> ()
+        | _,(SyMem _ | SyMemLogic _ | SySep _ | SyCallResult | SyUnOp _) ->
+          assert false
+        | ki, SyBinOp (_, _, e1, e2) ->
+           register_alarm emitter ki (Alarms.Differing_blocks (e1, e2))
              (fun annot k ->
                k "@[pointer subtraction:@ %a@]%t" pr_annot annot))
 
@@ -411,33 +421,33 @@ let warn_nan_infinite warn_mode fkind pp =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyBinOp _ | SyMem _ | SyMemLogic _ | SySep _) -> assert false
-	| _, SyCallResult -> (* cf. bug 997 *)
-	  Value_messages.warning
+        | _,SyNone -> ()
+        | _,(SyBinOp _ | SyMem _ | SyMemLogic _ | SySep _) -> assert false
+        | _, SyCallResult -> (* cf. bug 997 *)
+          Value_messages.warning
             "@[non-finite@ %s@ value being@ returned:@ \
               assert(\\is_finite(\\returned_value))@]" sfkind;
-	| ki,SyUnOp (exp_r) ->
+        | ki,SyUnOp (exp_r) ->
           (* Should always be called with a non-none fkind, except in logic
              mode (in which case this code is not executed) *)
            let fkind = Extlib.the fkind in
-	   register_alarm emitter ki
+           register_alarm emitter ki
              (Alarms.Is_nan_or_infinite (exp_r, fkind))
              (fun annot k -> k "@[non-finite@ %s@ value@ (%t):@ %a@]%t"
                sfkind pp pr_annot annot))
 
-let warn_uninitialized warn_mode = 
+let warn_uninitialized warn_mode =
   do_warn warn_mode.unspecified
     (fun () ->
       match get_syntactic_context () with
-	| _, SyNone
-	| _, (SyBinOp _ | SyUnOp _ | SySep _ | SyMemLogic _) -> assert false
-	| _, SyCallResult ->
-	  Value_messages.warning
+        | _, SyNone
+        | _, (SyBinOp _ | SyUnOp _ | SySep _ | SyMemLogic _) -> assert false
+        | _, SyCallResult ->
+          Value_messages.warning
             "@[returned value may be uninitialized:@ \
               assert \\initialized(\\returned_value)@]";
-	| ki, SyMem lv_d ->
-	   register_alarm emitter ki (Alarms.Uninitialized lv_d)
+        | ki, SyMem lv_d ->
+           register_alarm emitter ki (Alarms.Uninitialized lv_d)
              (fun annot k ->
                k "@[accessing uninitialized left-value:@ %a@]%t"
                  pr_annot annot))
@@ -446,14 +456,14 @@ let warn_escapingaddr warn_mode =
   do_warn warn_mode.unspecified
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyBinOp _ | SyUnOp _ | SySep _ | SyMemLogic _) -> assert false
-	| _, SyCallResult ->
-	  Value_messages.warning
+        | _,SyNone -> ()
+        | _,(SyBinOp _ | SyUnOp _ | SySep _ | SyMemLogic _) -> assert false
+        | _, SyCallResult ->
+          Value_messages.warning
             "@[returned value may be contain escaping addresses:@ \
               assert \\dangling(\\returned_value)@]";
-	| ki,SyMem lv_d ->
-	   register_alarm emitter ki (Alarms.Dangling lv_d)
+        | ki,SyMem lv_d ->
+           register_alarm emitter ki (Alarms.Dangling lv_d)
              (fun annot k ->
                k "@[accessing left-value@ that contains@ escaping@ addresses:\
                  @ %a@]%t" pr_annot annot))
@@ -464,9 +474,9 @@ let warn_separated warn_mode =
       match get_syntactic_context () with
       | _,SyNone -> ()
       | _,(SyBinOp _ | SyUnOp _ | SyMem _ | SyMemLogic _| SyCallResult) ->
-	assert false
+        assert false
       | ki,SySep(lv1,lv2) ->
-	 register_alarm emitter ki (Alarms.Not_separated(lv1, lv2))
+         register_alarm emitter ki (Alarms.Not_separated(lv1, lv2))
            (fun annot k ->
              k "@[undefined multiple accesses in expression.@ %a@]%t"
                pr_annot annot))
@@ -475,11 +485,11 @@ let warn_overlap msg warn_mode =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyBinOp _ | SyUnOp _ | SyMem _ | SyMemLogic _| SyCallResult) ->
-	  assert false
-	| ki,SySep(lv1,lv2) ->
-	   register_alarm emitter ki (Alarms.Overlap(lv1, lv2))
+        | _,SyNone -> ()
+        | _,(SyBinOp _ | SyUnOp _ | SyMem _ | SyMemLogic _| SyCallResult) ->
+          assert false
+        | ki,SySep(lv1,lv2) ->
+           register_alarm emitter ki (Alarms.Overlap(lv1, lv2))
              (fun annot k ->
                k "@[partially overlapping@ lvalue assignment%t.@ %a@]%t"
                  msg pr_annot annot))
@@ -488,20 +498,20 @@ let warn_incompatible_fun_pointer ~completely warn_mode =
   do_warn warn_mode.others
     (fun () ->
       match get_syntactic_context () with
-	| _,SyNone -> ()
-	| _,(SyBinOp _ | SySep _ | SyMem _ | SyMemLogic _| SyCallResult) ->
-	  assert false
-	| ki,SyUnOp e ->
-	   if completely || Value_parameters.WarnHarmlessFunctionPointer.get ()
-	   then
-	     register_alarm emitter ki (Alarms.Function_pointer e)
+        | _,SyNone -> ()
+        | _,(SyBinOp _ | SySep _ | SyMem _ | SyMemLogic _| SyCallResult) ->
+          assert false
+        | ki,SyUnOp e ->
+           if completely || Value_parameters.WarnHarmlessFunctionPointer.get ()
+           then
+             register_alarm emitter ki (Alarms.Function_pointer e)
                (fun annot k ->
-		 k "@[Function@ pointer@ and@ pointed@ function@ have@ %s\
+                 k "@[Function@ pointer@ and@ pointed@ function@ have@ %s\
                   incompatible@ types.@ %a@]%t"
                    (if completely then "completely " else "") pr_annot annot)
-	   else
-	     Value_parameters.warning ~current:true ~once:true
-	       "@[Continuing@ past@ harmless@ mismatch@ in@ function@ pointer@]"
+           else
+             Value_parameters.warning ~current:true ~once:true
+               "@[Continuing@ past@ harmless@ mismatch@ in@ function@ pointer@]"
     )
 
 
