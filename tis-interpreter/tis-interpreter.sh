@@ -84,6 +84,10 @@ local builtins="\
   -val-builtin sscanf:tis_sscanf \
   -val-builtin scanf:tis_scanf \
   -val-builtin alloca:Frama_C_alloc_size \
+  -val-builtin ceil:Frama_C_ceil \
+  -val-builtin trunc:Frama_C_trunc \
+  -val-builtin floor:Frama_C_floor \
+  -val-builtin sqrt:Frama_C_sqrt \
 "
 
 local options_interpreter_only="\
