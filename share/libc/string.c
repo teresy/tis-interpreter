@@ -27,6 +27,23 @@ char *stpcpy(char * dest, const char * from)
 # endif
 #endif
 
+size_t strspn(const char *s1, const char *s2)
+{
+  const char *p = s1, *spanp;
+  char c, sc;
+
+cont:
+  c = *p;
+  spanp = s2;
+  while (1) {
+    sc = *spanp;
+    if (sc == 0) break;
+    if (sc == c) { p++; goto cont; }
+    spanp++;
+  }
+  return (p - s1);
+}
+
 /*
  * Copy s2 to s1, truncating or null-padding to always copy n bytes
  * return s1

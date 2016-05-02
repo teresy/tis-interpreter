@@ -6854,10 +6854,14 @@ and doBinOp loc (bop: binop) (e1: exp) (t1: typ) (e2: exp) (t2: typ) =
       (makeCastT e2 t2 (integralPromotion t2)) t1
   | MinusA when isPointerType t1 && isPointerType t2 ->
     let commontype = t1 in
-    intType,
+    (* Following C11:6.5.6§9 :
+       "When two pointers are subtracted (...) the size of the result is
+       implementation-defined, and its type (a signed integer type) is ptrdiff_t
+       defined in the <stddef.h> header." *)
+    let resultType = Cil.theMachine.Cil.ptrdiffType in
+    resultType,
     optConstFoldBinOp loc false MinusPP (makeCastT e1 t1 commontype)
-      (makeCastT e2 t2 commontype) intType
-
+      (makeCastT e2 t2 commontype) resultType
   (* Two special cases for comparisons with the NULL pointer. We are a bit
      more permissive. *)
   | (Le|Lt|Ge|Gt|Eq|Ne) when isPointerType t1 && isZero e2 ->

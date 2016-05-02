@@ -341,7 +341,11 @@ int fputs_unlocked(const char *s, FILE *stream);
 
 #ifdef _GNU_SOURCE
 
+/*@ ghost extern int __fc_heap_status __attribute__((FRAMA_C_MODEL)); */
+
+/*@ assigns __fc_heap_status \from fmt[..], __fc_heap_status; */
 int asprintf(char **dest, const char *fmt, ...);
+
 int vasprintf(char **dest, const char *fmt, va_list va);
 
 #endif

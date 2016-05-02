@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,15 +23,6 @@ void (*signal(int signum, void (*handler)(int)  ))(int)
 
 /* STRING FUNCTIONS */
 
-void *memchr(const void *s, int c, size_t n) {
-  unsigned char cc = (unsigned char) c;
-  const unsigned char * p = s;
-  for (int i = n; i > 0; i--, p++) {
-    if (*p == cc) return (void*) p;
-  }
-  return NULL;
-}
-
 // from string.c
 int char_equal_ignore_case(char c1, char c2);
 
@@ -53,16 +45,6 @@ int vfprintf(FILE *stream, const char *format, va_list ap)
     return 0;
 }
 
-/*@ assigns __fc_heap_status \from fmt[..], __fc_heap_status; */
-int asprintf(char **dest, const char *fmt, ...)
-{
-  char *res = malloc(80);
-  *dest = res;
-  Frama_C_make_unknown(res, 79);
-  res[79] = 0;
-  return 79;
-}
-
 void abort(void)
 {
     /*@ assert \false; */
@@ -74,8 +56,20 @@ int atoi(const char *nptr) {
 }
 
 /*@ assigns \nothing; // wrong, obviously */
-int sscanf(const char *s, const char *fmt, ...)
+int sscanf(const char *s, const char *fmt, ...);
+
+int puts(const char *s)
 {
-  Frama_C_show_each_sscanf(s, fmt);
-  return 0;  
+  return printf("%s\n", s);
+}
+
+int fputs(const char *s, FILE *stream)
+{
+  extern FILE __fc_initial_stdout;
+  if (stream == &__fc_initial_stdout)
+    return printf("%s", s);
+  extern FILE __fc_initial_stderr;
+  if (stream == &__fc_initial_stdout)
+    return fprintf(stderr, "%s", s);
+  return fprintf(stream, "%s", s);
 }
