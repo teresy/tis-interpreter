@@ -271,7 +271,7 @@ value printf_float (value fmt, value f)
   int r = snprintf(buf, 64, String_val(fmt), Double_val(f));
   if (r >= 64)
     {
-      char *p = malloc(r+1);
+      char *p = malloc(r+1U);
       assert (p);
       r = sprintf(p, String_val(fmt), Double_val(f));
       assert (r >= 0);
