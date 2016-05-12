@@ -51,11 +51,12 @@ cont:
 char *
 strncpy(char *s1, const char *s2, size_t n)
 {
-  size_t l = strlen(s2);
-  if (l > n)
-    l = n;
-  else
+  size_t l = strnlen(s2, n);
+  if (l < n) {
+    /*@ assert \separated(s1 + (0 .. n-1), s2 + (0 .. l)); */
     memset(s1, 0, n);
+  }
+
   memcpy(s1, s2, l);
   return s1;
 }
