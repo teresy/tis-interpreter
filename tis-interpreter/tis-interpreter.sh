@@ -24,7 +24,7 @@ TIS_PATH=$ROOT_PATH/tis-interpreter
 
 local frama_c_binary="frama-c"
 
-if [ -z "${TIS_INTERPRETER_USE_FRAMA_C+x}" ]
+if [ -z "${TIS_INTERPRETER_USE_FRAMA_C}" ]
 then
   # If TIS_INTERPRETER_USE_FRAMA_C variable is not set
   # then we use the local Frama-C installation.
@@ -39,6 +39,7 @@ fi
 
 local preprocess_only="0"
 local gui="0"
+local filesystem="0"
 
 local builtins="\
   -val-builtin memcmp:tis_memcmp \
@@ -146,6 +147,9 @@ do
         --gui)
             gui="1";;
 
+        --fs)
+            filesystem="1";;
+        
         *)
             others=("${others[@]}" "$1")
     esac
@@ -153,6 +157,11 @@ do
 done
 
 local final_compiler="$compiler $compiler_opts"
+
+if [ "Q$filesystem" = "Q1" ];
+then
+    others=("${others[@]}" "$ROOT_PATH/filesystem/__tis_mkfs.c")
+fi    
 
 if [ "Q$preprocess_only" = "Q1" ];
 then

@@ -117,11 +117,11 @@
 #define __SIZEOF_LONG 4
 #define __SIZEOF_LONGLONG 8
 #define __CHAR_BIT 8
-#define __PTRDIFF_T long
+#define __PTRDIFF_T int
 #define __FC_LONG_MAX 2147483647L
 #define __FC_ULONG_MAX 4294967295UL
-#define __SIZE_T unsigned long
-#define __FC_SIZE_MAX __FC_ULONG_MAX
+#define __SIZE_T unsigned int
+#define __FC_SIZE_MAX __FC_UINT_MAX
 
 /* Optional */
 #define __INTPTR_T signed long
@@ -138,11 +138,11 @@
 #define __UINT_FAST32_T unsigned long
 
 /* POSIX */
-#define __SSIZE_T signed long
-#define __FC_SSIZE_MAX __FC_LONG_MAX
+#define __SSIZE_T signed int
+#define __FC_SSIZE_MAX __FC_INT_MAX
 /* stdint.h */
-#define __FC_PTRDIFF_MIN __FC_LONG_MIN
-#define __FC_PTRDIFF_MAX __FC_LONG_MAX
+#define __FC_PTRDIFF_MIN __FC_INT_MIN
+#define __FC_PTRDIFF_MAX __FC_INT_MAX
 
 #else
 #ifdef __FC_MACHDEP_PPC_32
