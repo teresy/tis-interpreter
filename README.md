@@ -19,5 +19,9 @@ problem.
 
 At this stage, the best uses for tis-interpreter are pure C libraries with
 as few dependencies as possible and existing tests. After compilation
-(or after downloading a soon-to-be-available binary package), you can
+(or after downloading a binary snapshot), you can
 experiment with [examples of increasing difficulty](https://github.com/TrustInSoft/tis-interpreter/blob/master/tis-interpreter/EXAMPLES.md).
+
+## Binary snapshot
+
+[2016-05 x86-64 Linux binary snapshot](http://trust-in-soft.com/tis-interpreter-2016-05.linux-x86_64.tar.gz) of commit [275f0a4](https://github.com/TrustInSoft/tis-interpreter/commit/275f0a4940f8ac26464b9ae4fd3688c53733f537) (sha256sum 4ae640405dc3080d8ac713cfb908ff80f51040dee19f56dbf1a949c37c7383a7)
