@@ -218,7 +218,7 @@ fi
 
 AC_CHECK_PROG(OCAMLFIND,ocamlfind,ocamlfind,no)
 if test "$OCAMLFIND" = no ; then
-   	AC_MSG_ERROR(Cannot find ocamlfind.)
+   	AC_MSG_ERROR(Cannot find ocamlfind of findlib.)
 fi
 
 #################################################
