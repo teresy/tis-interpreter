@@ -55,6 +55,8 @@ module AllRoundingModesConstants: Parameter_sig.Bool
 module NoResultsFunctions: Parameter_sig.Kernel_function_set
 module NoResultsAll: Parameter_sig.Bool
 
+module ExitOnDegeneration: Parameter_sig.Bool
+
 module ResultsCallstack: Parameter_sig.Bool
 module ResultsSlevel: Parameter_sig.Bool
 module JoinResults: Parameter_sig.Bool

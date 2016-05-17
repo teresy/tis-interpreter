@@ -169,43 +169,7 @@ let check () =
   Split_return.pretty_strategies ();
 ;;
 
-(* Do something tasteless in case the user did not put a spec on functions
-   for which he set [-val-use-spec]:  generate an incorrect one ourselves *)
-let generate_specs () =
-  let aux kf =
-    if need_assigns kf then begin
-      let spec = Annotations.funspec ~populate:false kf in
-      Value_parameters.warning "Generating potentially incorrect assigns \
-                                for function '%a' for which option %s is set"
-        Kernel_function.pretty kf Value_parameters.UsePrototype.option_name;
-      (* The function populate_spec may emit a warning. Position a loc. *)
-      Cil.CurrentLoc.set (Kernel_function.get_location kf);
-      ignore (!Annotations.populate_spec_ref kf spec)
-    end
-  in
-  Value_parameters.UsePrototype.iter aux
 
-let pre () =
-  generate_specs ();
-  Value_perf.reset();
-  (* We may be resuming Value from a previously crashed analysis. Clear
-     degeneration states *)
-  Value_util.DegenerationPoints.clear ();
-;;
-
-let post_cleanup ~aborted =
-  Value_util.clear_call_stack ();
-  (* Precompute consolidated states if required *)
-  if Value_parameters.JoinResults.get () then
-    Db.Value.Table_By_Callstack.iter
-      (fun s _ -> ignore (Db.Value.get_stmt_state s));
-  if not aborted then begin
-    (* Keep memexec results for users that want to resume the analysis *)
-    Mem_exec2.cleanup_results ();
-    if not (Value_parameters.SaveFunctionState.is_empty ()) then
-      State_import.save_globals_state ();
-  end;
-;;
 
 (* Register a signal handler for SIGUSR1, that will be used to abort Value *)
 let () =
@@ -279,51 +243,8 @@ let analyzer config =
 
 (* Analysis. *)
 
-let main_compute compute_from_entry_point =
-  try
-    pre ();
-    Value_util.clear_call_stack ();
-    Stop_at_nth.clear ();
-    let kf, library = Globals.entry_point () in
-    Value_results.mark_kf_as_called kf;
-    Value_parameters.feedback "Analyzing a%scomplete application starting at %a"
-      (if library then "n in" else " ")
-      Kernel_function.pretty kf;
-    Separate.prologue ();
-    match compute_from_entry_point kf with
-    | `Bottom ->
-      Value_parameters.result "Value analysis not started because globals \
-                               initialization is not computable.";
-      Db.Value.mark_as_computed ();
-      Eval_annots.mark_invalid_initializers ()
-    | `Value () ->
-      Value_parameters.feedback "done for function %a" Kernel_function.pretty kf;
-      Separate.epilogue ();
-      Db.Value.mark_as_computed ();
-      (* Mark unreachable and RTE statuses. Only do this there, not when the
-         analysis was aborted (hence, not in post_cleanup), because the
-         propagation is incomplete. Also do not mark unreachable statutes if
-         there is an alarm in the initialisers (bottom initial state), as we
-         would end up marking the alarm as dead. *)
-      Eval_annots.mark_unreachable ();
-      (* Try to refine the 'Unknown' statuses that have been emitted during
-         this analysis. *)
-      Eval_annots.mark_green_and_red ();
-      Eval_annots.mark_rte ();
-      post_cleanup ~aborted:false;
-      (* Remove redundant alarms *)
-      if Value_parameters.RmAssert.get() then !Db.Scope.rm_asserts ()
-  with
-  | Db.Value.Aborted ->
-    Db.Value.mark_as_computed ();
-    post_cleanup ~aborted:true;
-    (* Signal that a degeneration occurred *)
-    if Value_util.DegenerationPoints.length () > 0 then
-      Value_parameters.error
-        "Degeneration occurred:@\nresults are not correct for lines of code \
-         that can be reached from the degeneration point.@."
-  | Globals.No_such_entry_point _ as exn -> raise exn
-  | exn -> Db.Value.mark_as_computed (); raise exn
+let main_compute _compute_from_entry_point =
+  assert false
 
 
 let ref_analyzer =

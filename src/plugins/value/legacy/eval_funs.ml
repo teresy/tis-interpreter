@@ -706,8 +706,9 @@ let force_compute () =
     if Value_parameters.RmAssert.get() then !Db.Scope.rm_asserts ()
   with
   | Db.Value.Aborted ->
-      Db.Value.mark_as_computed ();
-      post_cleanup ~aborted:true;
+     if Value_parameters.ExitOnDegeneration.get() then exit 2;
+     Db.Value.mark_as_computed ();
+     post_cleanup ~aborted:true;
       (* Signal that a degeneration occurred *)
       if Value_util.DegenerationPoints.length () > 0 then
         Value_parameters.error

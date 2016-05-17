@@ -95,6 +95,7 @@ local options_interpreter_only="\
   -val-interpreter-mode \
   -val-stop-at-nth-alarm 1 \
   -obviously-terminates \
+  -val-exit-on-degeneration \
   -val-clone-on-recursive-calls"
 
 local options_gui_only="-server -slevel 10000000"

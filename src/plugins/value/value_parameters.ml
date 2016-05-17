@@ -180,6 +180,15 @@ program"
 let () = add_dep NoResultsAll.parameter
 
 let () = Parameter_customize.set_group performance
+module ExitOnDegeneration =
+  False
+    (struct
+       let option_name = "-val-exit-on-degeneration"
+       let help = "if the value analysis degenerates, exit immediately with return code 2"
+     end)
+let () = add_dep ExitOnDegeneration.parameter
+
+let () = Parameter_customize.set_group performance
 let () = Parameter_customize.is_invisible ()
 module ResultsAfter =
   Bool
