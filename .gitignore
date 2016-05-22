@@ -45,3 +45,4 @@ src/plugins/report/Makefile
 src/plugins/security_slicing/Makefile
 src/plugins/wp/Makefile
 tis-interpreter/tis-interpreter/
+ocamlgraph/
