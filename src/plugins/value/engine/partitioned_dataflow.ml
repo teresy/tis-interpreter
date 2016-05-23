@@ -267,51 +267,10 @@ module Make_Dataflow
     let is_return s = match s.skind with Return _ -> true | _ -> false
 
     let combinePredecessors stmt ~old new_ =
-      let new_v = new_.to_propagate in
-      if States.is_empty new_v
-      then None
-      else
-        (* Update loc, which can appear in garbled mix origins. *)
-        let old_loc = Cil.CurrentLoc.get () in
-        Cil.CurrentLoc.set (Cil_datatype.Stmt.loc stmt);
-        let current_info = stmt_state stmt in
-        let old_counter = current_info.counter_unroll in
-        (* Check whether there is enough slevel available. If not, merge all
-           states together. However, do not perform merge on return
-           instructions. This needelessly degrades precision for
-           postconditions and option -split-return. *)
-        let r =
-          if old_counter > slevel stmt && not (is_return stmt)
-          then
-            let new_state = States.join new_v in
-            let old_state = States.join old.to_propagate in
-            let join = Bottom.join Domain.join new_state old_state in
-            old.to_propagate <- States.singleton' join;
-            Some old
-          else
-            let merged, unchanged =
-              States.merge ~into:old.to_propagate new_v in
-            if unchanged
-            then None
-            else
-              let length_new = States.length new_v in
-              let new_counter_unroll = old_counter + length_new in
-              if new_counter_unroll >= !counter_unroll_target
-              then begin
-                let period = Value_parameters.ShowSlevel.get() in
-                let reached = new_counter_unroll / period * period in
-                Value_parameters.feedback ~once:true
-                  "Semantic level unrolling superposing up to %d states"
-                  reached;
-                counter_unroll_target := reached + period;
-              end;
-              current_info.counter_unroll <- new_counter_unroll;
-              old.to_propagate <- merged;
-              Some old
-        in
-        Cil.CurrentLoc.set old_loc;
-        r
-
+      ignore stmt;
+      ignore old;
+      ignore new_;
+      assert false
 
     let interp_call stmt lval_option funcexp args state acc =
       let results, call_cacheable =
@@ -572,36 +531,8 @@ module Make_Dataflow
        to true or false *)
     let conditions_table = Cil_datatype.Stmt.Hashtbl.create 5
 
-    let doGuard stmt exp t =
-      let th, el as thel =
-        doGuardOneCond stmt exp true t, doGuardOneCond stmt exp false t
-      in
-      let th_reachable =
-        match th with
-          Dataflow2.GUse _ | Dataflow2.GDefault -> mask_then
-        | Dataflow2.GUnreachable -> 0
-      in
-      let el_reachable =
-        match el with
-          Dataflow2.GUse _ | Dataflow2.GDefault -> mask_else
-        | Dataflow2.GUnreachable -> 0
-      in
-      let reachable = th_reachable lor el_reachable in
-      if Value_parameters.InterpreterMode.get() && (reachable = mask_both)
-      then begin
-        Value_util.warning_once_current "Do not know which branch to take. Stopping.";
-        exit 0
-      end;
-      let current_condition_status =
-        try StmtHtbl.find conditions_table stmt
-        with Not_found -> 0
-      in
-      let new_status =
-        current_condition_status lor reachable
-      in
-      if new_status <> 0
-      then StmtHtbl.replace conditions_table stmt new_status;
-      Separate.filter_if stmt thel
+    let doGuard _stmt _exp _t =
+      assert false
 
   end
 
