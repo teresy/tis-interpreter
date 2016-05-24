@@ -98,7 +98,7 @@ void free(void *p) {
 void *calloc(size_t nmemb, size_t size)
 {
   size_t l = nmemb * size;
-  char *p = malloc(l);
+  void *p = malloc(l);
   if (!p) goto end;
   if (l > 0) tis_memset(p, 0, l);
  end:

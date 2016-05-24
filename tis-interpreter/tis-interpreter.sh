@@ -92,16 +92,17 @@ local builtins="\
 "
 
 local options_interpreter_only="\
-  -val-interpreter-mode \
   -val-stop-at-nth-alarm 1 \
   -obviously-terminates \
   -val-exit-on-degeneration \
-  -val-clone-on-recursive-calls"
+"
 
 local options_gui_only="-server -slevel 10000000"
 
 local options="\
   -val \
+  -val-interpreter-mode \
+  -val-clone-on-recursive-calls \
   -warn-decimal-float none \
   -unspecified-access \
   -val-warn-pointer-arithmetic-out-of-bounds \
