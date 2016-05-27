@@ -23,22 +23,6 @@ void (*signal(int signum, void (*handler)(int)  ))(int)
     return empty_handler;
 }
 
-
-/* STRING FUNCTIONS */
-
-// from string.c
-int char_equal_ignore_case(char c1, char c2);
-
-// Should be in strings.h + strings.c:
-/*@ assigns \result \from s1[0 .. n-1], s2[0 ..n-1]; */
-int strncasecmp (const char *s1, const char *s2, size_t n) {
-  for ( ; n != 0 && *s1 && *s2; n--, s1++, s2++) {
-    int res = char_equal_ignore_case(*s1,*s2);
-    if(res != 0) return res;
-  }
-  return 0;
-}
-
 void exit(int status) {
 }
 

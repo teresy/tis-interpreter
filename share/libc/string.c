@@ -121,18 +121,33 @@ char *strerror(int errnum)
 
 int strcasecmp(const char *s1, const char *s2)
 {
-  while(*s1 && *s2) {
-    unsigned char c1 = *s1;
-    c1 += ( c1 >= 'A' & c1 <= 'Z') << 5;
-    unsigned char c2 = *s2;
-    c2 += ( c2 >= 'A' & c2 <= 'Z') << 5;
-    int res = c2 - c1;
-    if(res != 0) return res;
-    s1++;
-    s2++;
+  int c1, c2;
+  int res;
+  while (1) {
+    c1 = (unsigned char)*s1;
+    c2 = (unsigned char)*s2;
+    res =
+      (c1 + ((c1 >= 'A' & c1 <= 'Z') << 5)) -
+      (c2 + ((c1 >= 'A' & c1 <= 'Z') << 5));
+    if ((c1 == 0) | (res != 0)) break;
+    s1++; s2++;
   }
-
-  if( *s1 == 0 && *s2 == 0) return 0;
-  if( *s1 == 0) return -1;
-  return 1;
+  return res;
 }
+
+int strncasecmp (const char *s1, const char *s2, size_t n) {
+  int c1, c2;
+  int res = 0;
+  while (1) {
+    if (n == 0U) break;
+    c1 = (unsigned char)*s1;
+    c2 = (unsigned char)*s2;
+    res =
+      (c1 + ((c1 >= 'A' & c1 <= 'Z') << 5)) -
+      (c2 + ((c1 >= 'A' & c1 <= 'Z') << 5));
+    if ((c1 == 0) | (res != 0)) break;
+    n--; s1++; s2++;
+  }
+  return res;
+}
+
