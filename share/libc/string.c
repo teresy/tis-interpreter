@@ -126,10 +126,8 @@ int strcasecmp(const char *s1, const char *s2)
   while (1) {
     c1 = (unsigned char)*s1;
     c2 = (unsigned char)*s2;
-    res =
-      (c1 + ((c1 >= 'A' & c1 <= 'Z') << 5)) -
-      (c2 + ((c2 >= 'A' & c2 <= 'Z') << 5));
-    if ((c1 == 0) | (res != 0)) break;
+    res = c1 - c2 + 32 * ((c1 >= 'A' & c1 <= 'Z') - (c2 >= 'A' & c2 <= 'Z'));
+    if ((!c1) | (res != 0)) break;
     s1++; s2++;
   }
   return res;
@@ -142,10 +140,8 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
     if (!n) break;
     c1 = (unsigned char)*s1;
     c2 = (unsigned char)*s2;
-    res =
-      (c1 + ((c1 >= 'A' & c1 <= 'Z') << 5)) -
-      (c2 + ((c2 >= 'A' & c2 <= 'Z') << 5));
-    if ((c1 == 0) | (res != 0)) break;
+    res = c1 - c2 + 32 * ((c1 >= 'A' & c1 <= 'Z') - (c2 >= 'A' & c2 <= 'Z'));
+    if ((!c1) | (res != 0)) break;
     n--; s1++; s2++;
   }
   return res;
