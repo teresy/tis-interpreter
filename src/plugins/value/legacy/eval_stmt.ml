@@ -34,6 +34,214 @@ open Eval_exprs
 (* Forward reference to [Eval_funs.compute_call] *)
 let compute_call_ref = ref (fun _ -> assert false)
 
+(* Fold on all offsets of a given type (i.e. offsets of all fields / indices,
+   descending recursively into the type's structure) in the correct order
+   (i.e. how they are arranged in memory). *)
+let rec fold_typ_offsets (f : 'a -> offset -> 'a) (acc : 'a) (typ : typ) : 'a =
+  match typ with
+
+  (* A structure: fold on all the fields... *)
+  | TComp ({cstruct=true} as compinfo, _, _) ->
+    begin
+      let fields : fieldinfo list = compinfo.cfields in
+      List.fold_left
+        (fun (acc : 'a) (field : fieldinfo) ->
+           let field_typ : typ = field.ftype in
+           fold_typ_offsets
+             (fun acc offset ->
+                let offset' = Field(field, offset) in
+                f acc offset')
+             acc
+             field_typ)
+        acc
+        fields
+    end
+
+  (* An array: fold on all the indices... *)
+  | TArray (cell_typ, arr_length_exp_option, _, _) ->
+    begin
+      let arr_length : int =
+        try lenOfArray arr_length_exp_option
+        with LenOfArray -> assert false (* Should not happen if the assignment
+                                           [lval1 = lval2;] was accepted during
+                                           typing phase. *)
+      in
+      let rec fold_on_indices (acc : 'a) (index : int) =
+        if index < arr_length
+        then
+          let acc =
+            fold_typ_offsets
+              (fun acc offset ->
+                 (* TODO: Find something better than builtinLoc ... *)
+                 let offset' =
+                   let index_exp =
+                     kinteger64 ~loc:builtinLoc (Int.of_int index)
+                   in
+                   Index(index_exp, offset)
+                 in
+                 f acc offset')
+              acc
+              cell_typ
+          in
+          fold_on_indices acc (index + 1)
+        else
+          acc
+      in
+      fold_on_indices acc 0
+    end
+
+  (* Any other type: it has no internal structure, so building the offset
+     ends here. *)
+  | _ -> f acc NoOffset
+
+
+(* Field's (or padding's) offset and size in bits. *)
+type offset_and_size = int * int
+
+type field_or_padding =
+  | Field   of offset_and_size
+  | Padding of offset_and_size
+
+(* Fold on all fields and paddings between fields (i.e. offsets and sizes of all
+   the fields / paddings) of a given type in the order that they are stored in
+   memory. *)
+let fold_typ_fields_and_paddings
+    (f : 'a -> field_or_padding -> 'a) (acc : 'a) (typ : typ) : 'a =
+
+  (* The structure field's offset-and-size-in-bits folding function.
+     + The first argument, i.e. the accumulator, is a pair:
+       - the top-level (field-and-padding-level) accumulator,
+       - one offset after the previously treated field's last offset.
+     + The second argument is the first offset and the size of the currently
+       treated field.
+     + The result is a pair:
+       - the new field-and-padding-level accumulator,
+       - the offset after the current field's last offset. *)
+  let offset_and_size_f
+      (acc, prev_after_last_offset        : 'a * int)
+      (current_first_offset, current_size : offset_and_size)
+    : 'a * int =
+
+    (* The previous field must have ended before the current field begins... *)
+    assert (prev_after_last_offset <= current_first_offset);
+
+    (* Compute the first offset and the size of potential padding (i.e padding
+       between the previous field and the current one). *)
+    let padding_first_offset = prev_after_last_offset in
+    let padding_size = current_first_offset - padding_first_offset in
+    assert (padding_size >= 0);
+
+    (* Treat padding if it exists. *)
+    let acc =
+      (* Is there padding between the previous field and the current one? *)
+      if padding_size > 0
+      then
+        (* There is some padding: call the field-and-padding-level
+           folding function. *)
+        let padding = Padding (padding_first_offset, padding_size) in
+        f acc padding
+      else
+        (* There is no padding: just pass on the field-and-padding-level
+           accumulator unchanged. *)
+        acc
+    in
+
+    (* Treat the current field if it exists. *)
+    let acc =
+      (* Zero size means it's a dummy field. *)
+      if current_size > 0
+      then
+        let field = Field (current_first_offset, current_size) in
+        f acc field
+      else
+        acc
+    in
+
+    (* Pass a pair:
+       - the field-and-padding-level accumulator,
+       - and the offset after the current field's last offset
+       in the offset-and-size-level accumulator. *)
+    let current_after_last_offset = current_first_offset + current_size in
+    acc, current_after_last_offset
+  in
+
+  (* Fold on all the structure fields' offsets-and-sizes. *)
+  let (acc, after_last_offset : 'a * int) =
+    try
+      fold_typ_offsets
+        (fun (acc' : 'a * int) (offset : offset) ->
+           offset_and_size_f acc' (bitsOffset typ offset))
+        (acc, 0)
+        typ
+    with SizeOfError _ -> assert false (* Should not happen if the assignment
+                                          [lval1 = lval2;] was accepted during
+                                          typing phase. *)
+  in
+
+  (* Finish with an artificial offset-and-size of a dummy field positioned right
+     after the structure, so that the potential padding after the structure's
+     last field is taken into account. *)
+  let (acc, _) : ('a * int) =
+    try
+      offset_and_size_f (acc, after_last_offset) (bitsSizeOf typ, 0)
+    with SizeOfError _ -> assert false (* Should not happen if the assignment
+                                          [lval1 = lval2;] was accepted during
+                                          typing phase. *)
+  in
+
+  (* Folding done! *)
+  acc
+
+(* Fold on all paddings between fields (i.e. offsets and sizes of all the
+   paddings) of a given type. *)
+let fold_typ_paddings (f : 'a -> offset_and_size -> 'a) : 'a -> typ -> 'a =
+  fold_typ_fields_and_paddings
+    (fun acc -> function
+       | Field   _               -> acc
+       | Padding offset_and_size -> f acc offset_and_size)
+
+(* Uninitialize all the padding in an offsetmap of the given type. *)
+let make_padding_uninitialized (offsetmap : V_Offsetmap.t) (typ : typ) =
+
+  match typ with
+  | TComp ({cstruct=true} as _compinfo, _, _) ->
+
+    let uninitialize_offsetmap_on_offset_and_size :
+      V_Offsetmap.t -> offset_and_size -> V_Offsetmap.t =
+
+      (* The validity covers the whole offsetmap. *)
+      let validity : Base.validity =
+        let validity_start : Int.t = Int.zero in
+        let validity_end   : Int.t =
+          try Int.of_int ((bitsSizeOf typ) - 1)
+          with SizeOfError _ -> assert false (* Should not happen if the
+                                                assignment [lval1 = lval2;] was
+                                                accepted during typing phase.*)
+        in
+        Base.Known (validity_start, validity_end)
+      in
+
+      fun offsetmap (offset, size) ->
+
+        (* Translate the description of the offsetmap's area to uninitialize
+           to right types. *)
+        let offsets : Ival.t = Ival.of_int offset in
+        let size    : Int.t  = Int.of_int size in
+
+        (* Perform the uninitialization. *)
+        let _alarm, offsetmap_or_bottom =
+          V_Offsetmap.update_uninitialize ~validity ~offsets ~size offsetmap
+        in
+
+        (* Post-treatment of the uninitialization result. *)
+        match offsetmap_or_bottom with
+        | `Bottom        -> assert false (* Should not happen. *)
+        | `Map offsetmap -> offsetmap
+    in
+
+    fold_typ_paddings uninitialize_offsetmap_on_offset_and_size offsetmap typ
+
+  | _ -> offsetmap
 
   exception Do_assign_imprecise_copy
 
@@ -119,6 +327,7 @@ let compute_call_ref = ref (fun _ -> assert false)
           match offsetmap_state with
             | `Bottom -> Model.bottom
             | `Res (offsetmap, state) ->
+              let offsetmap = make_padding_uninitialized offsetmap typ_lv in
               Locals_scoping.remember_if_locals_in_offsetmap
                 clob left_loc offsetmap;
               (match Warn.offsetmap_contains_imprecision offsetmap with

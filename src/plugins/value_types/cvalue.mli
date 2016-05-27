@@ -226,10 +226,18 @@ module V_Or_Uninitialized : sig
 
 (** Memory slices. They are maps from intervals to values with
     flags. All sizes and intervals are in bits. *)
-module V_Offsetmap:
-  module type of Offsetmap_sig
-  with type v = V_Or_Uninitialized.t
-  and type widen_hint = V_Or_Uninitialized.generic_widen_hint
+module V_Offsetmap : sig
+  include module type of Offsetmap_sig
+    with type v = V_Or_Uninitialized.t
+    and type widen_hint = V_Or_Uninitialized.generic_widen_hint
+
+  (** Like [update], but for uninitializing. *)
+  val update_uninitialize :
+    validity:Base.validity ->
+    offsets:Ival.t ->
+    size:Int.t ->
+    t -> alarm * t_bottom
+end
 
 
 (** Values bound by default to a variable. *)

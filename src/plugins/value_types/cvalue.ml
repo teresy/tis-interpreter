@@ -1164,6 +1164,10 @@ end
 module V_Offsetmap = struct
   include Offsetmap.Make(V_Or_Uninitialized)
 
+  let update_uninitialize ~validity ~offsets ~size t =
+    let v = V_Or_Uninitialized.uninitialized in
+    update ~validity ~exact:true ~offsets ~size v t
+
   let from_string s =
     (* Iterate on s + null terminator; same signature as List.fold_left *)
     let fold_string f acc s =

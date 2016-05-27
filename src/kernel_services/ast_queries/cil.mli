@@ -572,7 +572,7 @@ val argsToList:
 (** True if the argument is an array type *)
 val isArrayType: typ -> bool
 
-(** True if the argument is a struct of union type *)
+(** True if the argument is a struct or union type *)
 val isStructOrUnionType: typ -> bool
 
 (** Raised when {!Cil.lenOfArray} fails either because the length is [None]
