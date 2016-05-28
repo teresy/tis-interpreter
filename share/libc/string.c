@@ -31,17 +31,18 @@ size_t strspn(const char *s1, const char *s2)
 {
   const char *p = s1, *spanp;
   char c, sc;
-
+  size_t ret;
 cont:
   c = *p;
   spanp = s2;
   while (1) {
     sc = *spanp;
-    if (sc == 0) break;
+    if (!sc) break;
     if (sc == c) { p++; goto cont; }
     spanp++;
   }
-  return (p - s1);
+  ret = p - s1;
+  return ret;
 }
 
 /*
@@ -63,33 +64,41 @@ strncpy(char *s1, const char *s2, size_t n)
 
 char *strrchr(const char *s, int c)
 {
-  int r;
-  char* ret = 0;
-  c = (char)c;    
-  while(1) {
-    r = *s;
-    if (r == c) ret = s;
-    if (!r) break;
-    s++;
+  char *ret = 0;
+  c = (char)c;
+  if (c) {
+    while (1) {
+      s = strchr(s, c);
+      if (!s) break;
+      ret = s;
+      s++;
+    }
   }
+  else
+    ret = strchr(s, c);
   return ret;
 }
 
-char *strstr(const char *string, const char *substring)
+char *strstr(const char *str, const char *sub)
 {
-  size_t l = strlen(substring);
   int c;
-  while (1) {
-    c = memcmp(string, substring, l);
-    if (!c) break;
-    c = *string;
-    if (!c) {
-      string = 0;
-      break;
+  char *ret = 0;
+  size_t subl = strlen(sub);
+  size_t strl = strlen(str);
+  if (subl <= strl) {
+    strl -= subl;
+    while (1) {
+      c = memcmp(str, sub, subl);
+      if (!c) {
+        ret = str;
+        break;
+      }
+      if (!strl) break;
+      str++;
+      strl--;
     }
-    string++;
   }
-  return string;
+  return ret;
 }
 
 char* strncat(char *dest, const char *src, size_t n)
@@ -110,7 +119,8 @@ char* strncat(char *dest, const char *src, size_t n)
 
 char *strerror(int errnum)
 {
-  return "strerror message by tis-interpreter";
+  char *res = "strerror message by tis-interpreter";
+  return res;
 }
 
 int strcasecmp(const char *s1, const char *s2)
