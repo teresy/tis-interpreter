@@ -3227,7 +3227,7 @@ fi
 
 
 if test "$OCAMLFIND" = no ; then
-   	as_fn_error $? "Cannot find ocamlfind." "$LINENO" 5
+   	as_fn_error $? "Cannot find ocamlfind of findlib." "$LINENO" 5
 fi
 
 #################################################

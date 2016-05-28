@@ -63,54 +63,48 @@ strncpy(char *s1, const char *s2, size_t n)
 
 char *strrchr(const char *s, int c)
 {
-    char* ret=0;
-    do {
-        if( *s == (char)c )
-            ret=s;
-    } while(*s++);
-    return ret;
+  int r;
+  char* ret = 0;
+  c = (char)c;    
+  while(1) {
+    r = *s;
+    if (r == c) ret = s;
+    if (!r) break;
+    s++;
+  }
+  return ret;
 }
 
 char *strstr(const char *string, const char *substring)
 {
-    char *a, *b;
-    
-    /* First scan quickly through the two strings looking for a
-     * single-character match.  When it's found, then compare the
-     * rest of the substring.
-     */
-
-    b = substring;
-    if (*b == 0) {
-	return string;
+  size_t l = strlen(substring);
+  int c;
+  while (1) {
+    c = memcmp(string, substring, l);
+    if (!c) break;
+    c = *string;
+    if (!c) {
+      string = 0;
+      break;
     }
-    for ( ; *string != 0; string += 1) {
-	if (*string != *b) {
-	    continue;
-	}
-	a = string;
-	while (1) {
-	    if (*b == 0) {
-		return string;
-	    }
-	    if (*a++ != *b++) {
-		break;
-	    }
-	}
-	b = substring;
-    }
-    return (char *) 0;
+    string++;
+  }
+  return string;
 }
 
 char* strncat(char *dest, const char *src, size_t n)
 {
-  size_t dest_len = strlen(dest);
-  size_t i;
-
-  for (i = 0 ; i < n && src[i] != '\0' ; i++)
-    dest[dest_len + i] = src[i];
-  dest[dest_len + i] = '\0';
-
+  size_t dlen = strlen(dest);
+  char *w = dest + dlen;
+  size_t slen = strlen(src);
+  if (slen < n) {
+    memcpy(w, src, slen + 1);
+  }
+  else {
+    memcpy(w, src, n);
+    /*@ assert \separated(w + slen, src + (0 .. n-1)); */
+    w[slen] = '\0';
+  }
   return dest;
 }
 
