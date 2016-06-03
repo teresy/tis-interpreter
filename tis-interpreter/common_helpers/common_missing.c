@@ -32,10 +32,7 @@ int vfprintf(FILE *stream, const char *format, va_list ap)
     return 0;
 }
 
-void abort(void)
-{
-    /*@ assert \false; */
-    return;
+void abort(void) {
 }
 
 int atoi(const char *nptr) {

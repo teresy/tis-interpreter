@@ -928,7 +928,6 @@ of function %a which have not been stored." Kernel_function.pretty current_kf;
 
   let mask_then = Db.Value.mask_then
   let mask_else = Db.Value.mask_else
-  let mask_both = mask_then lor mask_else
 
   let do_doGuard stmt exp t () =
     let not_exp = new_exp ~loc:exp.eloc (UnOp(LNot, exp, intType)) in
@@ -947,18 +946,13 @@ of function %a which have not been stored." Kernel_function.pretty current_kf;
       | Dataflow2.GUnreachable -> 0
     in
     let reachable = th_reachable lor el_reachable in
-    if Value_parameters.InterpreterMode.get() && (reachable = mask_both)
-    then begin
-	warning_once_current "Do not know which branch to take. Stopping.";
-	raise Db.Value.Aborted
-      end;
     let current_condition_status =
       try
         Cil_datatype.Stmt.Hashtbl.find conditions_table stmt
       with Not_found -> 0
     in
-    let new_status = 
-      current_condition_status lor reachable 
+    let new_status =
+      current_condition_status lor reachable
     in
     if new_status <> 0
     then Cil_datatype.Stmt.Hashtbl.replace conditions_table stmt new_status;
