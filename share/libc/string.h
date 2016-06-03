@@ -154,55 +154,56 @@ extern char *strchr(const char *__s, int __c);
 extern char *strrchr(const char *__s, int __c);
 
 /*@ requires valid_string_src: valid_read_string(__s);
-  @ requires valid_string_reject: valid_read_string(reject);
-  @ assigns \result \from __s[0..], reject[0..];
+  @ requires valid_string_reject: valid_read_string(__reject);
+  @ assigns \result \from __s[0..], __reject[0..];
   @ ensures 0 <= \result <= strlen(__s);
   @*/
-extern size_t strcspn(const char *__s, const char *reject);
+extern size_t strcspn(const char *__s, const char *__reject);
 
 /*@ requires valid_string_src: valid_read_string(__s);
-  @ requires valid_string_accept: valid_read_string(accept);
-  @ assigns \result \from __s[0..], accept[0..];
+  @ requires valid_string_accept: valid_read_string(__accept);
+  @ assigns \result \from __s[0..], __accept[0..];
   @ ensures 0 <= \result <= strlen(__s);
   @*/
-extern size_t strspn(const char *__s, const char *accept);
+extern size_t strspn(const char *__s, const char *__accept);
 
 /*@ requires valid_string_src: valid_read_string(__s);
-  @ requires valid_string_accept: valid_read_string(accept);
-  @ assigns \result \from __s, __s[0..], accept[0..];
+  @ requires valid_string_accept: valid_read_string(__accept);
+  @ assigns \result \from __s, __s[0..], __accept[0..];
   @ ensures \result == 0 || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strpbrk(const char *__s, const char *accept);
+extern char *strpbrk(const char *__s, const char *__accept);
 
-/*@ requires valid_string_haystack: valid_read_string(haystack);
-  @ requires valid_string_needle: valid_read_string(needle);
-  @ assigns \result \from haystack, haystack[0..], needle[0..];
+/*@ requires valid_string_haystack: valid_read_string(__haystack);
+  @ requires valid_string_needle: valid_read_string(__needle);
+  @ assigns \result \from __haystack, __haystack[0..], __needle[0..];
   @ ensures \result == 0
-  @      || (\subset(\result, haystack+(0..)) && \valid_read(\result)
-  @          && memcmp{Pre,Pre}(\result,needle,strlen(needle)) == 0);
+  @      || (\subset(\result, __haystack+(0..)) && \valid_read(\result)
+  @          && memcmp{Pre,Pre}(\result,__needle,strlen(__needle)) == 0);
   @*/
-extern char *strstr(const char *haystack, const char *needle);
+extern char *strstr(const char *__haystack, const char *__needle);
 
 /*@ requires valid_string_src: valid_string_or_null(__s);
-  @ requires valid_string_delim: valid_read_string(delim);
-  @ assigns \result \from __s, __s[0..], delim[0..];
+  @ requires valid_string_delim: valid_read_string(__delim);
+  @ assigns \result \from __s, __s[0..], __delim[0..];
   @ ensures \result == \null
             || \base_addr(\result) == \base_addr(__s);
   @*/
-extern char *strtok(char *restrict __s, const char *restrict delim);
+extern char *strtok(char *restrict __s, const char *restrict __delim);
 
-/*@ requires valid_string_src: \valid(stringp) && valid_string(*stringp);
-  @ requires valid_string_delim: valid_read_string(delim);
-  @ assigns *stringp \from delim[..], *stringp[..];
-  @ assigns \result \from delim[..], *stringp[..];
+#ifdef _BSD_SOURCE
+/*@ requires valid_string_src: \valid(__stringp) && valid_string(*__stringp);
+  @ requires valid_string_delim: valid_read_string(__delim);
+  @ assigns *__stringp \from __delim[..], *__stringp[..];
+  @ assigns \result \from __delim[..], *__stringp[..];
   @*/
-extern char *strsep (char **stringp, const char *delim);
+extern char *strsep (char **__stringp, const char *__delim);
+#endif
 
-
-/*@ assigns \result \from errnum;
+/*@ assigns \result \from __errnum;
   @ ensures valid_read_string(\result);
   @*/
-extern char *strerror(int errnum);
+extern char *strerror(int __errnum);
 
 // Copy strings
 
@@ -215,7 +216,7 @@ extern char *strerror(int errnum);
   @*/
 extern char *strcpy(char *restrict __dest, const char *restrict __src);
 
-/*@ 
+/*@
   @ requires valid_string_src: valid_read_string(__src);
   @ requires room_nstring: \valid(__dest+(0 .. __n-1));
   @ assigns __dest[0..__n - 1] \from __src[0..__n-1];

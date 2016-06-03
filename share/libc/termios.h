@@ -167,17 +167,17 @@ struct termios {
   cc_t     c_cc[NCCS]; /* special characters */
 };
 
-speed_t cfgetispeed(const struct termios *);
-speed_t cfgetospeed(const struct termios *);
-int     cfsetispeed(struct termios *, speed_t);
-int     cfsetospeed(struct termios *, speed_t);
-int     tcdrain(int);
-int     tcflow(int, int);
-int     tcflush(int, int);
-int     tcgetattr(int, struct termios *);
-pid_t   tcgetsid(int);
-int     tcsendbreak(int, int);
-int     tcsetattr(int, int, struct termios *);
+speed_t cfgetispeed(const struct termios *__t);
+speed_t cfgetospeed(const struct termios *__t);
+int     cfsetispeed(struct termios *__t, speed_t __s);
+int     cfsetospeed(struct termios *__t, speed_t __s);
+int     tcdrain(int __a);
+int     tcflow(int __a, int __b);
+int     tcflush(int __a, int __b);
+int     tcgetattr(int __a, struct termios *__t);
+pid_t   tcgetsid(int __a);
+int     tcsendbreak(int __a, int __b);
+int     tcsetattr(int __a, int __b, struct termios *__t);
 
 __END_DECLS
 

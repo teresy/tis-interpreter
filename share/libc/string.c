@@ -19,8 +19,10 @@ char *stpcpy(char * dest, const char * from)
     c = *from;
     *dest = c;
     if (!c) break;
-    from++;
-    dest++;
+    else {
+      from++;
+      dest++;
+    }
   }
   return dest;
 }
@@ -38,8 +40,13 @@ cont:
   while (1) {
     sc = *spanp;
     if (!sc) break;
-    if (sc == c) { p++; goto cont; }
-    spanp++;
+    else if (sc == c) {
+      p++;
+      goto cont;
+    }
+    else {
+      spanp++;
+    }
   }
   ret = p - s1;
   return ret;
@@ -49,8 +56,7 @@ cont:
  * Copy s2 to s1, truncating or null-padding to always copy n bytes
  * return s1
  */
-char *
-strncpy(char *s1, const char *s2, size_t n)
+char *strncpy(char *s1, const char *s2, size_t n)
 {
   size_t l = strnlen(s2, n);
   if (l < n) {
@@ -64,14 +70,19 @@ strncpy(char *s1, const char *s2, size_t n)
 
 char *strrchr(const char *s, int c)
 {
-  char *ret = 0;
+  char *ret;
   c = (char)c;
   if (c) {
+    ret = 0;
     while (1) {
       s = strchr(s, c);
-      if (!s) break;
-      ret = s;
-      s++;
+      if (!s) {
+        break;
+      }
+      else {
+        ret = s;
+        s++;
+      }
     }
   }
   else
@@ -93,15 +104,16 @@ char *strstr(const char *str, const char *sub)
         ret = str;
         break;
       }
-      if (!strl) break;
-      str++;
-      strl--;
+      else if (!strl) break;
+      else {
+        str++; strl--;
+      }
     }
   }
   return ret;
 }
 
-char* strncat(char *dest, const char *src, size_t n)
+char *strncat(char *dest, const char *src, size_t n)
 {
   size_t dlen = strlen(dest);
   char *w = dest + dlen;
@@ -132,7 +144,9 @@ int strcasecmp(const char *s1, const char *s2)
     c2 = (unsigned char)*s2;
     res = c1 - c2 + 32 * ((c1 >= 'A' & c1 <= 'Z') - (c2 >= 'A' & c2 <= 'Z'));
     if ((!c1) | (res != 0)) break;
-    s1++; s2++;
+    else {
+      s1++; s2++;
+    }
   }
   return res;
 }
@@ -142,11 +156,15 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
   int res = 0;
   while (1) {
     if (!n) break;
-    c1 = (unsigned char)*s1;
-    c2 = (unsigned char)*s2;
-    res = c1 - c2 + 32 * ((c1 >= 'A' & c1 <= 'Z') - (c2 >= 'A' & c2 <= 'Z'));
-    if ((!c1) | (res != 0)) break;
-    n--; s1++; s2++;
+    else {
+      c1 = (unsigned char)*s1;
+      c2 = (unsigned char)*s2;
+      res = c1 - c2 + 32 * ((c1 >= 'A' & c1 <= 'Z') - (c2 >= 'A' & c2 <= 'Z'));
+      if ((!c1) | (res != 0)) break;
+      else {
+        n--; s1++; s2++;
+      }
+    }
   }
   return res;
 }
