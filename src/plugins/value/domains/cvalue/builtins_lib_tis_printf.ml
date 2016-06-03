@@ -932,13 +932,10 @@ let tis_asprintf state args =
       let size_cval = abstract_length fmtres in
       let size_ival = Ival.add_int Ival.one (Cvalue.V.project_ival size_cval) in
       let size_v = Cvalue.V.inject_ival size_ival in
-      let new_address, state = 
-        Builtins_lib_malloc.alloc_abstract_strong
+      let new_address, state =
+        Builtins_lib_tis_malloc.alloc_abstract_strong
           dest_exp.eloc "tis_asprintf" size_v state
       in
-       
-      (* end allocation *)
-
       let sizeof_ptr =
         (Int_Base.inject (Int.of_int (Bit_utils.sizeofpointer ())))
       in
@@ -966,7 +963,7 @@ let tis_asprintf state args =
       { Value_types.c_values = [Eval_op.wrap_int v, state];
         c_clobbered = Base.SetLattice.bottom;
         c_cacheable = Value_types.Cacheable;
-        c_from = None; (* TODO?*) 
+        c_from = None; (* TODO?*)
       }
     | _ ->
       Value_parameters.error ~current:true

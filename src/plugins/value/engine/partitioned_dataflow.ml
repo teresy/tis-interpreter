@@ -262,8 +262,6 @@ module Make_Dataflow
          the other functions *)
       { to_propagate = v; }
 
-    let counter_unroll_target = ref (Value_parameters.ShowSlevel.get ())
-
     let is_return s = match s.skind with Return _ -> true | _ -> false
 
     let combinePredecessors stmt ~old new_ =
@@ -500,32 +498,6 @@ module Make_Dataflow
       Alarmset.end_stmt ();
       d.to_propagate <- states;
       d
-
-    let doGuardOneCond stmt exp positive t =
-      if States.is_empty (t.to_propagate)
-      then Dataflow2.GUnreachable
-      else begin
-        Alarmset.start_stmt (Kstmt stmt);
-        let new_values =
-          States.fold
-            (fun state acc ->
-               match Transfer.assume ~with_alarms state stmt exp positive with
-               | `Bottom -> acc
-               | `Value state -> States.add state acc)
-            t.to_propagate
-            States.empty
-        in
-        let result =
-          if States.is_empty new_values then Dataflow2.GUnreachable
-          else Dataflow2.GUse { to_propagate = new_values}
-        in
-        Alarmset.end_stmt ();
-        result
-      end
-
-    let mask_then = Db.Value.mask_then
-    let mask_else = Db.Value.mask_else
-    let mask_both = mask_then lor mask_else
 
     (* Table storing whether conditions on 'if' have been evaluated
        to true or false *)

@@ -1,7 +1,8 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  This file is part of tis-interpreter.                                 *)
-(*  Copyright (C) 2016 TrustInSoft                                        *)
+(*  Copyright (C) 2016 CEA                                                *)
+(*  Modified by TrustInSoft                                               *)
 (*                                                                        *)
 (*  you can redistribute it and/or modify it under the terms of the GNU   *)
 (*  General Public License as published by the Free Software              *)
@@ -267,7 +268,12 @@ let wrap_fallible_malloc ret_base orig_state state_after_alloc =
   let success = Eval_op.wrap_ptr ret, state_after_alloc in
   if MallocReturnsNull.get ()
   then
-    let failure = Eval_op.wrap_ptr Cvalue.V.singleton_zero, orig_state in
+    (* keep synchronized with headers! *)
+    let enomem = Ival.inject_singleton (Int.of_int 75) in
+    let failure_state =
+      Builtins_lib_tis_aux.optionally_set_errno enomem orig_state
+    in
+    let failure = Eval_op.wrap_ptr Cvalue.V.singleton_zero, failure_state in
     [ success ; failure ]
   else [ success ]
 

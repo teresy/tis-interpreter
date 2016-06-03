@@ -20,15 +20,31 @@ open Abstract_interp
 let register_builtin = Builtins.register_builtin
 let dkey = Value_parameters.register_category "imprecision"
 
+(** Strongly set the C variable errno if it is declared and
+    if the received value is nonzero *)
+
+let optionally_set_errno errno state =
+  if Ival.is_zero errno
+  then state
+  else
+    let errno = Ival.diff_if_one errno Ival.zero in
+    try
+      let scope = Cil_types.VGlobal in
+      let errno_var = Globals.Vars.find_from_astinfo "__FC_errno" scope in
+      let errno_loc = Locations.loc_of_varinfo errno_var in
+      Eval_op.add_binding ~exact:true ~with_alarms:CilE.warn_none_mode
+        state errno_loc (Cvalue.V.inject_ival errno)
+    with _ -> (* FIXME *)
+      state
 
 
-(**************************************************************************)
-(*  Helper functions for detection of overlap of memory locations       ***)
-(**************************************************************************)
+(*  Helper functions for detection of overlap of memory locations *)
+
 type overlap_status_t = Overlap | Separated | MayOverlap
 exception Overlap_status_uncertain
 
-let overlap_status_loc_bits ?(size_in_bytes = false) loc1 size_loc1 loc2 size_loc2 =
+let overlap_status_loc_bits ?(size_in_bytes = false)
+    loc1 size_loc1 loc2 size_loc2 =
   (* This function checks for overlaps in two zones defined by a Location_Bits
    * and a size in bits (or bytes)  *)
 
@@ -60,7 +76,7 @@ let overlap_status_loc_bits ?(size_in_bytes = false) loc1 size_loc1 loc2 size_lo
       Separated
     else
       begin
-        (* check separtion in worst-case scenario to guarantee non-overlapping *)
+        (* check separation in worst-case scenario to guarantee no overlap *)
         let location1_max = Locations.make_loc loc1 max1_bits in
         let location2_max = Locations.make_loc loc2 max2_bits in
 
@@ -72,16 +88,16 @@ let overlap_status_loc_bits ?(size_in_bytes = false) loc1 size_loc1 loc2 size_lo
         in
 
         if not (Locations.Zone.valid_intersects loc1_zone_max loc2_zone_max)
-        then (** Separation is certain **)
+        then (* Separation is certain *)
           Separated
         else
           begin
-            (* We cannot guarantee separation anymore. We'll try to guarantee
-             * overlap. If anything goes wrong, it means we can't and therefore
-             * the status will be MayOverlap *)
+            (* We cannot guarantee separation. We try to guarantee
+               overlap. If anything goes wrong, it means we can't and therefore
+               the status is MayOverlap *)
 
             (* if one of the locations has more than one base, we cannot
-             * guarantee overlap. The Not_found exception will be catched *)
+               guarantee overlap. The Not_found exception will be caught *)
             let _, offsets1 = Locations.Location_Bits.find_lonely_key loc1 in
             let _, offsets2 = Locations.Location_Bits.find_lonely_key loc2 in
 
@@ -123,7 +139,7 @@ let overlap_status_loc_bits ?(size_in_bytes = false) loc1 size_loc1 loc2 size_lo
       end
   ) with
   (* from find_lonely_key or find_lonely_binding *)
-  |Not_found | Overlap_status_uncertain -> MayOverlap
+  | Not_found | Overlap_status_uncertain -> MayOverlap
 
 (* Checks overlap status of two loc_bytes *)
 let overlap_status_loc_bytes loc1 size1 loc2 size2 =
@@ -210,3 +226,9 @@ module StringAndArrayUtilities = struct
   end
 
 end
+
+(*
+  Local Variables:
+  compile-command: "make -C ../../../../.."
+  End:
+*)

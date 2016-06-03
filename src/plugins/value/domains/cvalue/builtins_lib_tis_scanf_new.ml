@@ -1745,25 +1745,13 @@ let get_min_max_int_from_type ~typ =
 
 (* This abstract version handles uniformly all the strto{l,ll,ul,ull}
  * and ato{i,l,ll} builtins according to their expected return type *)
-let abstract_strto_int ?(is_ato = false) ~state ~nptr ~endptr ~base ~ret_type () =
-  let is_errno_defined = ref true in
-
+let abstract_strto_int ~is_ato ~state ~nptr ~endptr ~base ~ret_type =
   let ctype = match ret_type with
     | Int ->  Cil.intType
     | Long ->  Cil.longType
     | LLong ->  Cil.longLongType
     | ULong ->  Cil.ulongType
     | ULLong ->  Cil.ulongLongType
-  in
-
-  let errno_loc =
-    try
-      let scope = Cil_types.VGlobal in
-      let errno_varinfo = Globals.Vars.find_from_astinfo "__FC_errno" scope in
-      Locations.loc_of_varinfo errno_varinfo
-    with _ ->
-      is_errno_defined := false;
-      Locations.loc_bottom
   in
 
   let character_width = Bit_utils.sizeofchar () in
@@ -1801,9 +1789,9 @@ let abstract_strto_int ?(is_ato = false) ~state ~nptr ~endptr ~base ~ret_type ()
     in
     if is_negative then begin
       (* for strtoul (strtoull), if there was a leading sign, the function
-       * returns the negation of the result of the conversion represented as
-       * an unsigned value, unless the original (nonnegated) value would
-       * overflow; in the latter case return ULONG_MAX (ULLONG_MAX) * *)
+         returns the negation of the result of the conversion represented as
+         an unsigned value, unless the original (nonnegated) value would
+         overflow; in the latter case return ULONG_MAX (ULLONG_MAX) *)
       let t =
         match ret_type with
         | ULong | ULLong ->
@@ -1819,22 +1807,24 @@ let abstract_strto_int ?(is_ato = false) ~state ~nptr ~endptr ~base ~ret_type ()
   in
 
   (* Integer return value *)
-  let ret,errno = try handle_overflow ctype (Cvalue.V.inject_int integer), Ival.zero
+  let ret, errno =
+    try handle_overflow ctype (Cvalue.V.inject_int integer), Ival.zero
     with
       Integer_overflow o ->
       Value_parameters.warning ~current:true
-        "integer overflow or underflow trying to write %a to a variable of type \"%a\""
+        "integer overflow when writing %a to a location \
+         of type \"%a\""
         Cvalue.V.pretty o.integer Cil_printer.pp_typ o.typ;
       if is_ato then
         (* For the ato{i,l,ll}  functions, if the value of the result cannot be
-         * represented, the behavior is undefined (and they need no affect the
-         * value of the 'errno' variable on an error). *)
+           represented, the behavior is undefined (and they need no affect the
+           value of the 'errno' variable on an error). *)
         raise Undefined_behavior
       else begin (* strto{l,ll,ul,ull} functions *)
         (* If the correct value is outside the range of representable values,
-         * LONG_MIN, LONG_MAX, LLONG_MIN, LLONG_MAX, ULONG_MAX or ULLONG_MAX
-         * is returned (according to the return type and sign of the value, if any),
-         * and the value of the ERANGE macro is stored in 'errno' *)
+           LONG_MIN, LONG_MAX, LLONG_MIN, LLONG_MAX, ULONG_MAX or ULLONG_MAX
+           is returned (according to the return type and sign of the value,
+           if any), and the value of the ERANGE macro is stored in 'errno' *)
         let is_negative =
           Int.lt (Ival.project_int (Cvalue.V.project_ival o.integer)) Int.zero
         in
@@ -1842,7 +1832,7 @@ let abstract_strto_int ?(is_ato = false) ~state ~nptr ~endptr ~base ~ret_type ()
           let min,max = get_min_max_int_from_type ~typ:ctype in
           if is_negative then
             (* for unsigned types min equals ULONG_MAX or ULLONG_MAX,
-             * so the following line will yield the expected return value *)
+               so the following line will yield the expected return value *)
             min
           else
             max
@@ -1851,29 +1841,22 @@ let abstract_strto_int ?(is_ato = false) ~state ~nptr ~endptr ~base ~ret_type ()
       end
   in
 
-  (* Find pointer to final string *)
   let state =
-    if not is_ato && not (Cvalue.V.is_zero endptr) then begin
-      let problem = ref false in
-      let with_alarms = with_alarms_from_problem problem in
-      let size = Int_Base.inject (Integer.of_int (Bit_utils.sizeofpointer ())) in
-      let locat = Locations.make_loc (Locations.loc_bytes_to_loc_bits endptr) size in
-      let v = Locations.Location_Bytes.shift (Ival.of_int read_chars_count) nptr in
-      (* Write pointer to final string (only for strto* builtins) *)
-      let s = Eval_op.add_binding ~exact:true ~with_alarms state locat v in
-      (* write to errno if necessary *)
-      if errno <> Ival.zero && !is_errno_defined then begin
-        debug_msg "Setting errno = %a" Ival.pretty errno;
-        Eval_op.add_binding ~exact:true ~with_alarms
-          s errno_loc (Cvalue.V.inject_ival errno)
-      end
-      else begin
-        debug_msg "Not setting errno = %a" Ival.pretty errno;
-        s
-      end
-    end
+    if is_ato
+    then state
     else
-      state
+      let state = Aux.optionally_set_errno errno state in
+      if Cvalue.V.is_zero endptr
+      then state
+      else
+        let size = Int_Base.inject (Integer.of_int (Bit_utils.sizeofpointer ()))
+        in
+        let exact = Location_Bytes.cardinal_zero_or_one endptr in
+        let endptr = Locations.loc_bytes_to_loc_bits endptr in
+        let endptr = Locations.make_loc endptr size in
+        let v = Location_Bytes.shift (Ival.of_int read_chars_count) nptr in
+         (* Write pointer to final string (only for strto* builtins) *)
+         Eval_op.add_binding ~exact ~with_alarms state endptr v
   in
 
   (* Wrap the return value *)
@@ -1892,8 +1875,9 @@ let tis_strto_int state args ~ret_type ~fname =
         | Some m -> Int.to_int m
         | None -> 0
       in
-      let state,ret =
-        abstract_strto_int ~state ~nptr ~endptr ~base ~ret_type () in
+      let state, ret =
+        abstract_strto_int ~is_ato:false ~state ~nptr ~endptr ~base ~ret_type
+      in
 
       { Value_types.c_values = [ret, state];
         c_clobbered = Base.SetLattice.bottom;
@@ -1933,8 +1917,9 @@ let tis_ato_int state args ~ret_type ~fname =
       let endptr = Cvalue.V.singleton_zero in
       let is_ato = true in
 
-      let _,ret =
-        abstract_strto_int ~state ~is_ato ~nptr ~endptr ~base ~ret_type () in
+      let _, ret =
+        abstract_strto_int ~state ~is_ato ~nptr ~endptr ~base ~ret_type
+      in
       { Value_types.c_values = [ret, state];
         c_clobbered = Base.SetLattice.bottom;
         c_cacheable = Value_types.NoCache;
@@ -1987,17 +1972,6 @@ let abstract_strto_float ?(is_ato = false) ~state ~nptr ~endptr ~ret_type () =
   debug_msg ">>>+ abstract_strto_float: nptr=%a endptr=%a"
     Cvalue.V.pretty nptr Cvalue.V.pretty endptr;
 
-  let is_errno_defined = ref true in
-  let errno_loc =
-    try
-      let scope = Cil_types.VGlobal in
-      let errno_varinfo = Globals.Vars.find_from_astinfo "__FC_errno" scope in
-      Locations.loc_of_varinfo errno_varinfo
-    with _ ->
-      is_errno_defined := false;
-      Locations.loc_bottom
-  in
-
   let ctype, length_modifier = match ret_type with
     | Double ->  Cil.doubleType, "l"
     | Float  ->  Cil.floatType, ""
@@ -2030,21 +2004,21 @@ let abstract_strto_float ?(is_ato = false) ~state ~nptr ~endptr ~ret_type () =
         parsed_float_string  Cil_printer.pp_typ ctype;
         if is_ato then
         (* For the atof function, if the value of the result cannot be
-         * represented, the behavior is undefined (and it needs no affect the
-         * value of the 'errno' variable on an error. *)
+           represented, the behavior is undefined (and it needs no affect the
+           value of the 'errno' variable on an error. *)
         raise Undefined_behavior
       else
         (* strto{d,f,ld} functions *)
         (* - If the correct value *overflows* and default rounding is in effect,
-         *   plus or minus HUGE_VAL, HUGE_VALF or HUGE_VALL is returned
-         *   (according to the return type and sign of the value),
-         *   and the value of the ERANGE macro is stored in errno.
-         * - If the result *underflows*, the functions return a value whose
-         *   magnitude is no greater than the smallest normalized positive
-         *   number in the return type; whether errno acquires the value ERANGE
-         *   is implementation-defined.
-         *       * REMARK: our implementation does set the errno to ERANGE in
-         *                 case of an undeflow *)
+           plus or minus HUGE_VAL, HUGE_VALF or HUGE_VALL is returned
+           (according to the return type and sign of the value),
+           and the value of the ERANGE macro is stored in errno.
+           - If the result *underflows*, the functions return a value whose
+           magnitude is no greater than the smallest normalized positive
+           number in the return type; whether errno acquires the value ERANGE
+           is implementation-defined.
+           * REMARK: our implementation does set errno to ERANGE in
+           case of an undeflow. *)
 
         let huge_val = huge_val_from_type ~ret_type in
         let v =
@@ -2061,25 +2035,22 @@ let abstract_strto_float ?(is_ato = false) ~state ~nptr ~endptr ~ret_type () =
         Cvalue.V.inject_float (Fval.F.of_float 0.0), 0, Ival.zero
   in
 
-  (* Find pointer to final string *)
   let state =
-    if not is_ato && not (Cvalue.V.is_zero endptr) then begin
-      let problem = ref false in
-      let with_alarms = with_alarms_from_problem problem in
-      let size = Int_Base.inject (Integer.of_int (Bit_utils.sizeofpointer ())) in
-      let locat = Locations.make_loc (Locations.loc_bytes_to_loc_bits endptr) size in
-      let v = Locations.Location_Bytes.shift (Ival.of_int read_chars_count) nptr in
-      (* Write pointer to final string (only for strto* builtins) *)
-      let s = Eval_op.add_binding ~exact:true ~with_alarms state locat v in
-      (* write to errno if necessary *)
-      if errno <> Ival.zero && !is_errno_defined then begin
-        Eval_op.add_binding ~exact:true ~with_alarms
-          s errno_loc (Cvalue.V.inject_ival errno)
-      end
-      else s
-    end
+    if is_ato
+    then state
     else
-      state
+      let state = Aux.optionally_set_errno errno state in
+      if Cvalue.V.is_zero endptr
+      then state
+      else
+        let size = Int_Base.inject (Integer.of_int (Bit_utils.sizeofpointer ()))
+        in
+        let exact = Location_Bytes.cardinal_zero_or_one endptr in
+        let endptr = Locations.loc_bytes_to_loc_bits endptr in
+        let endptr = Locations.make_loc endptr size in
+        let v = Location_Bytes.shift (Ival.of_int read_chars_count) nptr in
+         (* Write pointer to final string (only for strto* builtins) *)
+         Eval_op.add_binding ~exact ~with_alarms state endptr v
   in
 
   (* Wrap the return value *)
@@ -2173,6 +2144,6 @@ let () =
 
 (*
   Local Variables:
-  compile-command: "make -C ../../.."
+  compile-command: "make -C ../../../../.."
   End:
 *)

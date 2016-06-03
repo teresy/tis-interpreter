@@ -17,6 +17,9 @@
 
 (** This module contains some helper functions to by used by TiS builtins *)
 
+val optionally_set_errno : Ival.t -> Cvalue.Model.t -> Cvalue.Model.t
+
+
 type overlap_status_t = Overlap | Separated | MayOverlap
 
 val dkey : Log.category
@@ -97,6 +100,6 @@ end
 
 (*
 Local Variables:
-compile-command: "make -C ../../.."
+compile-command: "make -C ../../../../.."
 End:
 *)
