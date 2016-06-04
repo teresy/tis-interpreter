@@ -59,23 +59,30 @@ struct
        | Return (None,_) -> None
        | _ -> assert false (* Cil invariant *)
 
-   let is_natural_loop = Loop.is_natural current_kf
-   let is_basic_loop s = match s.skind with Loop _ -> true | _ -> false
+   let obviously_terminates =
+     Value_parameters.ObviouslyTerminatesAll.get() (* TODO: by function *)
+
    (* Widening will be performed the statements verifying this predicate. *)
    let is_loop =
-     let non_natural = Loop.get_non_naturals current_kf in
-     if Stmt.Set.is_empty non_natural then
-       (fun s -> is_natural_loop s || is_basic_loop s)
+     if obviously_terminates
+     then fun _ -> false
      else
-       (fun s ->
-         is_natural_loop s || is_basic_loop s || Stmt.Set.mem s non_natural)
+       let is_natural_loop = Loop.is_natural current_kf in
+       let is_basic_loop s =
+         is_natural_loop s ||
+           match s.skind with Loop _ -> true | _ -> false
+       in
+       let non_natural = Loop.get_non_naturals current_kf in
+       if Stmt.Set.is_empty non_natural
+       then
+         is_basic_loop
+       else
+         (fun s -> is_basic_loop s || Stmt.Set.mem s non_natural)
 
-   let obviously_terminates = 
-     Value_parameters.ObviouslyTerminatesAll.get() (* TODO: by function *)      
+   let should_memorize_function =
+     Mark_noresults.should_memorize_function current_kf
 
-   let should_memorize_function = Mark_noresults.should_memorize_function current_kf
-
-   let slevel = 
+   let slevel =
      if obviously_terminates
      then Per_stmt_slevel.Global max_int
      else Per_stmt_slevel.local current_kf
