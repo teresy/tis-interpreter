@@ -368,7 +368,9 @@ let eval_binop_int ~with_alarms ~te1 ev1 op ev2 =
     | PlusA ->  V.add_untyped (Int_Base.one) ev1 ev2
     | MinusA -> V.add_untyped Int_Base.minus_one ev1 ev2
     | MinusPP -> eval_minus_pp ~with_alarms ~te1 ev1 ev2
-    | Mod -> V.c_rem ev1 ev2
+    | Mod -> 
+      let signed = Bit_utils.is_signed_int_enum_pointer te1 in
+      V.c_rem ~signed ev1 ev2
     | Div -> V.div ev1 ev2
     | Mult -> V.mul ev1 ev2
     | BXor -> V.bitwise_xor ev1 ev2

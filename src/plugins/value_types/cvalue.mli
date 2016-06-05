@@ -127,7 +127,7 @@ module V : sig
 
   val mul: t -> t -> t
   val div: t -> t -> t
-  val c_rem: t -> t -> t
+  val c_rem: signed:bool -> t -> t -> t
   val shift_right: t -> t -> t
   val shift_left: t -> t -> t
   val bitwise_and: signed:bool -> size:int -> t -> t -> t

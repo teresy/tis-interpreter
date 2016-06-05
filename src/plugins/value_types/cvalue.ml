@@ -590,8 +590,29 @@ module V = struct
   let div e1 e2 =
     arithmetic_function Ival.div e1 e2
 
-  let c_rem e1 e2 =
-    arithmetic_function Ival.c_rem e1 e2
+  let c_rem ~signed e1 e2 =
+    let alignment = Int.of_int (Kernel.AddressAlignment.get()) in
+    try
+      let i2 = project_ival e2 in
+      match i2 with
+      | Ival.Set a when not signed ->
+        Array.iter 
+          (fun i -> 
+            if Int.is_zero i || not (Int.is_zero (Int.rem alignment i))
+            then raise Not_based_on_null)
+          a;
+        ( match e1 with
+        | Map m ->
+          let rem_i _base i1 acc =
+            let ri = Ival.c_rem i1 i2 in
+            Ival.join acc ri
+          in
+          inject_ival (M.fold rem_i m Ival.bottom)
+        | Top _ -> e1)
+      | _ -> raise Not_based_on_null    
+    with
+      Not_based_on_null ->
+        arithmetic_function Ival.c_rem e1 e2
 
   let mul e1 e2 =
     arithmetic_function Ival.mul e1 e2
