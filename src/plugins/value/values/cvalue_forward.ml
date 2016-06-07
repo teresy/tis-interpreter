@@ -294,10 +294,60 @@ let forward_minus_pp ~context:(e1, e2, _res, _) ~typ ev1 ev2 =
 
 (* Evaluation of some operations on Cvalue.V. [typ] is the type of [ev1].
    The function must behave as if it was acting on unbounded integers *)
-let forward_binop_unbounded_integer ~context ~typ _ev1 _op _ev2 =
-  ignore (context);
-  ignore (typ);
-  assert false
+let forward_binop_unbounded_integer ~context ~typ ev1 op ev2 =
+  let e1, e2, _res, _typ = context in
+  match op with
+  | PlusPI
+  | IndexPI -> return (V.add_untyped (Bit_utils.osizeof_pointed typ) ev1 ev2)
+  | MinusPI ->
+    let int_base = Int_Base.neg (Bit_utils.osizeof_pointed typ) in
+    return (V.add_untyped int_base ev1 ev2)
+  | PlusA   -> return (V.add_untyped (Int_Base.one) ev1 ev2)
+  | MinusA  -> return (V.add_untyped Int_Base.minus_one ev1 ev2)
+  | MinusPP -> forward_minus_pp ~context ~typ ev1 ev2
+  | Mod     ->
+    let signed = Bit_utils.is_signed_int_enum_pointer typ in
+    V.c_rem ~signed ev1 ev2, division_alarms e2 ev2
+  | Div     -> V.div ev1 ev2, division_alarms e2 ev2
+  | Mult    -> return (V.mul ev1 ev2)
+  | Shiftrt ->
+    let ev2, alarms = reduce_shift_rhs typ e2 ev2 in
+    V.shift_right ev1 ev2, alarms
+  | Shiftlt ->
+    let ev1, ev2, alarms = reduce_shift_left typ e1 ev1 e2 ev2 in
+    V.shift_left ev1 ev2, alarms
+  | BXor    -> return (V.bitwise_xor ev1 ev2)
+  | BOr     -> return (V.bitwise_or ev1 ev2)
+  | BAnd    ->
+    let size = Cil.bitsSizeOf typ in
+    let signed = Bit_utils.is_signed_int_enum_pointer typ in
+    return (V.bitwise_and ~size ~signed ev1 ev2)
+  (* Strict evaluation. The caller of this function is supposed to take
+     into account the lazyness of those operators itself *)
+  | LOr  -> return (
+      V.interp_boolean
+        ~contains_zero:(V.contains_zero ev1 && V.contains_zero ev2)
+        ~contains_non_zero:(V.contains_non_zero ev1 || V.contains_non_zero ev2))
+  | LAnd -> return (
+      V.interp_boolean
+        ~contains_zero: (V.contains_zero ev1 || V.contains_zero ev2)
+        ~contains_non_zero:(V.contains_non_zero ev1 && V.contains_non_zero ev2))
+  | Eq | Ne | Ge | Le | Gt | Lt ->
+    let op = Value_util.conv_comp op in
+    let warn = not (are_comparable op ev1 ev2) in
+    let alarms = if warn
+      then (* Detect zero expressions created by the evaluator *)
+        if Value_util.is_value_zero e1 then
+          Alarmset.singleton (Alarms.Pointer_comparison (None, e2))
+        else
+          Alarmset.singleton (Alarms.Pointer_comparison (Some e1, e2))
+      else Alarmset.none
+    in
+    if warn && Value_parameters.UndefinedPointerComparisonPropagateAll.get ()
+    then V.zero_or_one, alarms
+    else
+      let signed = Bit_utils.is_signed_int_enum_pointer (Cil.unrollType typ) in
+      V.inject_comp_result (V.forward_comp_int ~signed op ev1 ev2), alarms
 
 let forward_binop_int ~context ~typ ev1 op ev2 =
   let res, alarms = forward_binop_unbounded_integer ~context ~typ ev1 op ev2 in
