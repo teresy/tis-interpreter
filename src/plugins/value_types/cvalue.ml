@@ -596,8 +596,8 @@ module V = struct
       let i2 = project_ival e2 in
       match i2 with
       | Ival.Set a when not signed ->
-        Array.iter 
-          (fun i -> 
+        Array.iter
+          (fun i ->
             if Int.is_zero i || not (Int.is_zero (Int.rem alignment i))
             then raise Not_based_on_null)
           a;
@@ -609,7 +609,7 @@ module V = struct
           in
           inject_ival (M.fold rem_i m Ival.bottom)
         | Top _ -> e1)
-      | _ -> raise Not_based_on_null    
+      | _ -> raise Not_based_on_null
     with
       Not_based_on_null ->
         arithmetic_function Ival.c_rem e1 e2
