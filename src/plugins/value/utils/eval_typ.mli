@@ -29,6 +29,8 @@ open Cil_types
 (** Bitfields *)
 val is_bitfield: typ -> bool
 
+val is_bitfield_or__Bool: typ -> bool
+
 val cast_lval_if_bitfield : typ -> Int_Base.t -> Cvalue.V.t -> Cvalue.V.t
 (** if needed, cast the given abstract value to the given size. Useful
     to handle bitfield. The type given as argument must be the type of

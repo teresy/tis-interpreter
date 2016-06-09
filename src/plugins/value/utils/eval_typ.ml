@@ -34,6 +34,15 @@ let is_bitfield typlv =
            | _ -> false)
     | _ -> false
 
+let is_bitfield_or__Bool typlv =
+  match Cil.unrollType typlv with
+  | TInt (IBool, _) -> true
+  | TInt (_, attrs) | TEnum (_, attrs) ->
+     (match Cil.findAttribute Cil.bitfield_attribute_name attrs with
+     | [AInt _] -> true
+     | _ -> false)
+  | _ -> false
+
 let sizeof_lval_typ typlv =
   match Cil.unrollType typlv with
     | TInt (_, attrs) | TEnum (_, attrs) as t ->
@@ -170,3 +179,9 @@ let resolve_functions ~typ_pointer v =
     let kfs = Locations.Location_Bytes.fold_topset_ok aux v acc_init in
     `Value kfs, !warn
   with Locations.Location_Bytes.Error_Top -> `Top, true
+
+(*
+Local Variables:
+compile-command: "make -C ../../../.."
+End:
+*)

@@ -361,7 +361,7 @@ let make_padding_uninitialized (offsetmap : V_Offsetmap.t) (typ : typ) =
     in
     let state_res =
       try
-        if Eval_typ.is_bitfield typ_lv
+        if Eval_typ.is_bitfield_or__Bool typ_lv
         then default ()
         else
           (* An lval assignement might be hidden by a dummy cast *)
