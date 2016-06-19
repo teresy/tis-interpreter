@@ -117,38 +117,32 @@ int __secs_to_tm(long long t, struct tm *tm)
 
 struct tm *gmtime(const time_t *timer)
 {
-    long l = 1441113529L;
-
-    __secs_to_tm(l, &__fc_time_tm);
-
-    Frama_C_show_each_gmtime(&__fc_time_tm);
- 
-    __fc_time_tm.tm_isdst = 0;
-   
-    return &__fc_time_tm;
+  long long l = *timer;
+  __secs_to_tm(l, &__fc_time_tm);
+  __fc_time_tm.tm_isdst = 0;
+  return &__fc_time_tm;
 }
 
 struct tm *gmtime_r(const time_t *timer, struct tm *result)
 {
-    long l = 1441113529L;
-
-    __secs_to_tm(l, result);
-
-    result->tm_isdst = 0;
-  
-    return result;
+  long long l = *timer;
+  __secs_to_tm(l, result);
+  result->tm_isdst = 0;
+  return result;
 }
+
+// 2016-06-19
+#define __CURRENT_TIME 1466335969L
 
 time_t time(time_t *p)
 {
-  if (p) *p = 1441113529;
-  return 1441113529;
+  if (p) *p = __CURRENT_TIME;
+  return __CURRENT_TIME;
 }
 
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-  // 01/09/2015 13:19
-  tv->tv_sec = 1441113529;
+  tv->tv_sec = __CURRENT_TIME;
   tv->tv_usec = 455745;
   return 0;
 }

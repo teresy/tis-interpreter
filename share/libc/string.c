@@ -1,9 +1,18 @@
 #include "string.h"
 #include "stdlib.h"
 
+char *strcpy(char *s1, const char *s2)
+{
+  size_t l = strlen(s2);
+  l++;
+  memcpy(s1, s2, l);
+  return s1;
+}
+
 char *strdup(const char *s)
 {
-  size_t l = strlen(s) + 1;
+  size_t l = strlen(s);
+  l++;
   char *p = malloc(l);
   memcpy(p, s, l);
   return p;

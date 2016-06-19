@@ -167,17 +167,72 @@ struct termios {
   cc_t     c_cc[NCCS]; /* special characters */
 };
 
+extern int Frama_C_entropy_source;
+extern int __FC_errno;
+
+/*@ 
+  requires \valid_read(__t);
+  assigns \result \from Frama_C_entropy_source, *__t;
+ */
 speed_t cfgetispeed(const struct termios *__t);
+
+/*@ 
+  requires \valid_read(__t);
+  assigns \result \from Frama_C_entropy_source, *__t;
+ */
 speed_t cfgetospeed(const struct termios *__t);
+
+/*@ 
+  requires \valid(__t);
+  ensures \result == 0 || \result == -1;
+  assigns __FC_errno, \result, *__t \from __s, Frama_C_entropy_source, *__t;
+ */
 int     cfsetispeed(struct termios *__t, speed_t __s);
+
+/*@ 
+  requires \valid(__t);
+  ensures \result == 0 || \result == -1;
+  assigns __FC_errno, \result, *__t \from __s, Frama_C_entropy_source, *__t;
+ */
 int     cfsetospeed(struct termios *__t, speed_t __s);
+
+/*@ ensures \result == 0 || \result == -1;
+  assigns \result, __FC_errno \from __a, Frama_C_entropy_source;
+*/
 int     tcdrain(int __a);
+
+/*@ ensures \result == 0 || \result == -1;
+  assigns \result, __FC_errno \from __a, __b, Frama_C_entropy_source;
+*/
 int     tcflow(int __a, int __b);
+
+/*@ ensures \result == 0 || \result == -1;
+  assigns \result, __FC_errno \from __a, __b, Frama_C_entropy_source;
+*/
 int     tcflush(int __a, int __b);
+
+/*@ requires \valid(__t);
+  ensures \initialized(__t);
+  assigns \result, *__t \from __a, Frama_C_entropy_source; 
+*/
 int     tcgetattr(int __a, struct termios *__t);
+
+/*@ assigns \result, __FC_errno \from __a, Frama_C_entropy_source;
+*/
 pid_t   tcgetsid(int __a);
+
+/*@ 
+  ensures \result == 0 || \result == -1;
+  assigns __FC_errno, \result \from __a, __b, Frama_C_entropy_source;
+ */
 int     tcsendbreak(int __a, int __b);
-int     tcsetattr(int __a, int __b, struct termios *__t);
+
+/*@ 
+  requires \valid_read(__t);
+  ensures \result == 0 || \result == -1;
+  assigns __FC_errno, \result \from __a, __b, Frama_C_entropy_source, *__t;
+ */
+int     tcsetattr(int __a, int __b, const struct termios *__t);
 
 __END_DECLS
 
