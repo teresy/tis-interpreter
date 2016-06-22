@@ -2140,12 +2140,9 @@ let rec combineTypes (what: combineWhat) (oldt: typ) (t: typ) : typ =
   | TEnum (_, olda), TEnum (ei, a) ->
     TEnum (ei, cabsAddAttributes olda a)
 
-  (* Strange one. But seems to be handled by GCC *)
-  | TEnum (oldei, olda) , TInt(IInt, a) -> TEnum(oldei,
-                                                 cabsAddAttributes olda a)
-  (* Strange one. But seems to be handled by GCC *)
-  | TInt(IInt, olda), TEnum (ei, a) -> TEnum(ei, cabsAddAttributes olda a)
-
+  | TEnum ({ ekind } as enum, olda), TInt (ikind, a)
+  | TInt (ikind, a), TEnum ({ ekind } as enum, olda) when ekind = ikind ->
+     TEnum (enum, cabsAddAttributes olda a)
 
   | TComp (oldci, _, olda) , TComp (ci, _, a) ->
     if oldci.cstruct <> ci.cstruct then
