@@ -62,9 +62,7 @@ let rec fold_typ_offsets (f : 'a -> offset -> 'a) (acc : 'a) (typ : typ) : 'a =
     begin
       let arr_length : int =
         try lenOfArray arr_length_exp_option
-        with LenOfArray -> assert false (* Should not happen if the assignment
-                                           [lval1 = lval2;] was accepted during
-                                           typing phase. *)
+        with LenOfArray -> 0
       in
       let rec fold_on_indices (acc : 'a) (index : int) =
         if index < arr_length
