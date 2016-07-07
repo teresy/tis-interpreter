@@ -623,7 +623,6 @@ let options_ok () =
 let check () =
   assert (floats_ok ());
   options_ok ();
-  Split_return.pretty_strategies ();
 ;;
 
 (* Do something tasteless in case the user did not put a spec on functions
