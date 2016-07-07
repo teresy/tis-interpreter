@@ -40,6 +40,7 @@ fi
 local preprocess_only="0"
 local gui="0"
 local filesystem="0"
+local mallocreturnsnull="0"
 
 local builtins="\
   -val-builtin memcmp:tis_memcmp \
@@ -151,7 +152,10 @@ do
 
         --fs)
             filesystem="1";;
-        
+
+        --malloc-returns-null)
+            mallocreturnsnull="1";;
+
         *)
             others=("${others[@]}" "$1")
     esac
@@ -163,7 +167,7 @@ local final_compiler="$compiler $compiler_opts"
 if [ "Q$filesystem" = "Q1" ];
 then
     others=("${others[@]}" "$ROOT_PATH/filesystem/__tis_mkfs.c")
-fi    
+fi
 
 if [ "Q$preprocess_only" = "Q1" ];
 then
@@ -184,9 +188,14 @@ else
             options="$options $options_interpreter_only"
     fi
 
+    if [ "Q$mallocreturnsnull" = "Q1" ];
+    then
+            options="$options -val-split-return full -val-malloc-returns-null"
+    fi
+
     exec $frama_c_binary -cpp-command="$final_compiler" \
-                          $options $builtins $common_files \
-                          $fc_runtime "${others[@]}";
+         $options $builtins $common_files \
+         $fc_runtime "${others[@]}";
 fi
 
 }

@@ -712,7 +712,7 @@ of function %a which have not been stored." Kernel_function.pretty current_kf;
     if State_set.is_empty states then ret Dataflow2.SDefault
     else
     let states =
-      if obviously_terminates
+      if obviously_terminates && (not (is_return s))
       then states
         (* We don't need to check if we lose precision in
         update_stmt_states because we did it before calling
@@ -742,10 +742,7 @@ of function %a which have not been stored." Kernel_function.pretty current_kf;
     let is_return = is_return s in
     let current_info = stmt_state s in
     let old_counter = current_info.counter_unroll in
-    let no_slevel_left =
-      (old_counter > slevel && not is_return)
-      || (is_return && obviously_terminates)
-    in
+    let no_slevel_left = old_counter > slevel && not is_return in
     let new_states =
       if no_slevel_left
       then (* No slevel left, perform some join and/or widening *)
