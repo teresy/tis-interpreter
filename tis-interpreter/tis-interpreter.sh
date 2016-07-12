@@ -90,6 +90,7 @@ local builtins="\
   -val-builtin trunc:Frama_C_trunc \
   -val-builtin floor:Frama_C_floor \
   -val-builtin sqrt:Frama_C_sqrt \
+  -val-malloc-functions calloc \
 "
 
 local options_interpreter_only="\

@@ -45,7 +45,7 @@ struct __tis_socket __tis_fd_socket[FOPEN_MAX];
 struct stat * __tis_mk_inode (int mode) {
   struct stat * st = malloc (sizeof (struct stat));
   //@ assert no_more_inode_mkfs_niy: st != \null;
-  st->st_ino = __tis_next_inode++;
+  st->st_ino = __tis_next_inode;  __tis_next_inode++;
   st->st_mode = mode;
   st->st_uid = __tis_uid;
   st->st_gid = __tis_gid;
@@ -70,23 +70,55 @@ void __tis_init_fd_file (FILE * f, int fd, int kind, int flags,
 
 struct __fc_fs_file __fc_fs_stdin, __fc_fs_stdout, __fc_fs_stderr;
 
+struct stat __tis_stdin_inode = {
+  .st_ino = 1,
+  .st_mode = S_IFCHR | S_IRUSR | S_IRGRP | S_IROTH,
+  .st_uid = __tis_uid,
+  .st_gid = __tis_gid,
+  .st_size = 0,
+  .st_nlink = 1,
+  .st_dev = __TIS_MKFS_ST_DEV,
+  .st_blksize = __TIS_MKFS_BLKSIZE,
+};
+
+struct stat __tis_stdout_inode = {
+  .st_ino = 2,
+  .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
+  .st_uid = __tis_uid,
+  .st_gid = __tis_gid,
+  .st_size = 0,
+  .st_nlink = 1,
+  .st_dev = __TIS_MKFS_ST_DEV,
+  .st_blksize = __TIS_MKFS_BLKSIZE,
+};
+
+struct stat __tis_stderr_inode = {
+  .st_ino = 3,
+  .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
+  .st_uid = __tis_uid,
+  .st_gid = __tis_gid,
+  .st_size = 0,
+  .st_nlink = 1,
+  .st_dev = __TIS_MKFS_ST_DEV,
+  .st_blksize = __TIS_MKFS_BLKSIZE,
+};
+
 __attribute__((constructor))
 void __tis_mkfs_init_stdio (void) {
-  int kind = S_IFCHR;
-
-  int r_mode = S_IRUSR | S_IRGRP | S_IROTH;
-  struct stat * st = __tis_mk_inode (kind | r_mode);
-  __tis_init_fd_file (stdin, 0, kind, O_RDONLY, st, &__fc_fs_stdin);
+  __tis_init_fd_file (stdin, 0, S_IFCHR, O_RDONLY, &__tis_stdin_inode,
+                      &__fc_fs_stdin);
   __fc_fopen[0] = *stdin;
 
-  int w_mode = S_IWUSR | S_IWGRP | S_IWOTH;
-  st = __tis_mk_inode (kind | w_mode);
-  __tis_init_fd_file (stdout, 1, kind, O_WRONLY, st, &__fc_fs_stdout);
+  __tis_init_fd_file (stdout, 1, S_IFCHR, O_WRONLY, &__tis_stdout_inode,
+                      &__fc_fs_stdout);
   __fc_fopen[1] = *stdout;
 
-  st = __tis_mk_inode (kind | w_mode);
-  __tis_init_fd_file (stderr, 2, kind, O_WRONLY, st, &__fc_fs_stderr);
+  __tis_init_fd_file (stderr, 2, S_IFCHR, O_WRONLY, &&__tis_stderr_inode,
+                      &__fc_fs_stderr);
   __fc_fopen[2] = *stderr;
+
+  /*@ assert __tis_next_inode == 1; */
+  __tis_next_inode = 4;
 }
 
 int __tis_get_next_file_desc (void) {
@@ -771,6 +803,7 @@ ssize_t read(int fd, void *buf, size_t count)
 size_t __tis_mkfs_fread(void * restrict ptr, size_t size,
                         size_t nmemb, FILE * restrict stream) {
   int fd = stream->__fc_stdio_id;
+  /*@ assert size * nmemb == (size_t) size * nmemb; */
   size_t toread = size * nmemb;
   size_t n_bytes = __tis_mkfs_read (fd, ptr, toread); // handle __TIS_MKFS_NO_ERR
   if (n_bytes < toread)
