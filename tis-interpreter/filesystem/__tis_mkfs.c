@@ -73,9 +73,6 @@ struct __fc_fs_file __fc_fs_stdin, __fc_fs_stdout, __fc_fs_stderr;
 struct stat __tis_stdin_inode = {
   .st_ino = 1,
   .st_mode = S_IFCHR | S_IRUSR | S_IRGRP | S_IROTH,
-  .st_uid = __tis_uid,
-  .st_gid = __tis_gid,
-  .st_size = 0,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
   .st_blksize = __TIS_MKFS_BLKSIZE,
@@ -84,9 +81,6 @@ struct stat __tis_stdin_inode = {
 struct stat __tis_stdout_inode = {
   .st_ino = 2,
   .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
-  .st_uid = __tis_uid,
-  .st_gid = __tis_gid,
-  .st_size = 0,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
   .st_blksize = __TIS_MKFS_BLKSIZE,
@@ -95,9 +89,6 @@ struct stat __tis_stdout_inode = {
 struct stat __tis_stderr_inode = {
   .st_ino = 3,
   .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
-  .st_uid = __tis_uid,
-  .st_gid = __tis_gid,
-  .st_size = 0,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
   .st_blksize = __TIS_MKFS_BLKSIZE,
@@ -105,10 +96,14 @@ struct stat __tis_stderr_inode = {
 
 __attribute__((constructor))
 void __tis_mkfs_init_stdio (void) {
+  __tis_stdin_inode.st_uid = __tis_uid;
+  __tis_stdin_inode.st_gid = __tis_gid;
   __tis_init_fd_file (stdin, 0, S_IFCHR, O_RDONLY, &__tis_stdin_inode,
                       &__fc_fs_stdin);
   __fc_fopen[0] = *stdin;
 
+  __tis_stdout_inode.st_uid = __tis_uid;
+  __tis_stdout_inode.st_gid = __tis_gid;
   __tis_init_fd_file (stdout, 1, S_IFCHR, O_WRONLY, &__tis_stdout_inode,
                       &__fc_fs_stdout);
   __fc_fopen[1] = *stdout;
@@ -116,6 +111,8 @@ void __tis_mkfs_init_stdio (void) {
   __tis_init_fd_file (stderr, 2, S_IFCHR, O_WRONLY, &&__tis_stderr_inode,
                       &__fc_fs_stderr);
   __fc_fopen[2] = *stderr;
+  __tis_stderr_inode.st_uid = __tis_uid;
+  __tis_stderr_inode.st_gid = __tis_gid;
 
   /*@ assert __tis_next_inode == 1; */
   __tis_next_inode = 4;

@@ -99,7 +99,7 @@ local options_interpreter_only="\
   -val-exit-on-degeneration \
 "
 
-local options_gui_only="-server -slevel 10000000"
+local options_gui_only="-server -slevel 1073000000"
 
 local options="\
   -val \
@@ -108,7 +108,7 @@ local options="\
   -warn-decimal-float none \
   -unspecified-access \
   -val-warn-pointer-arithmetic-out-of-bounds \
-  -val-malloc-plevel 1000000000 \
+  -val-malloc-plevel 1073000000 \
   -val-slevel-merge-after-loop=-@all \
   -no-val-print \
   -no-val-show-initial-state \
