@@ -1384,7 +1384,8 @@ filesystem/mkfs_print.cmx: filesystem/mkfs_print.ml filesystem/mkfs_print.cmi
 filesystem/mkfs_build.cmx: filesystem/mkfs_build.ml filesystem/mkfs_build.cmi 
 	$(OCAMLOPT) -rectypes -I filesystem -c -o $@ $<
 
-filesystem/mkfs_main.cmx: filesystem/mkfs_main.ml filesystem/mkfs_main.cmi 
+filesystem/mkfs_main.cmx: filesystem/mkfs_main.ml filesystem/mkfs_main.cmi \
+			filesystem/mkfs_print.cmi
 	$(OCAMLOPT) -rectypes -I filesystem -c -o $@ $<
 
 filesystem/tis-mkfs$(EXE): filesystem/mkfs_print.cmx filesystem/mkfs_main.cmx filesystem/mkfs_build.cmx
