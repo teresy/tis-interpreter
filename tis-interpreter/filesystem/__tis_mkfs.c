@@ -15,7 +15,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#define __TIS_MKFS_NO_ERR
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,12 +29,52 @@
 
 #include <__tis_mkfs.h>
 
-#ifdef __TIS_MKFS_PREALLOCATE
-// this must be provided externally
-extern int __tis_mkfs_preallocate_size;
+//===============================================================================
+#ifdef __TIS_MKFS_STATIC_ALLOCATE
+#define TIS_RLIMIT_FSIZE INT_MAX
+// TODO: RLIMIT_FSIZE should be used here, but only 3 in frama-c.
+unsigned char __fc_data_table[FOPEN_MAX][TIS_RLIMIT_FSIZE];
+static const size_t __tis_mkfs_allocate_size = TIS_RLIMIT_FSIZE;
+static unsigned char * alloc_data (int fd, size_t st_size) {
+  //@ assert file_fits_1: st_size <= __tis_mkfs_allocate_size ;
+  return  __fc_data_table + fd;
+}
+static unsigned char * realloc_data (unsigned char * old, size_t st_size) {
+  //@ assert file_fits_2: st_size <= __tis_mkfs_allocate_size ;
+  return old;
+}
+
+#elif defined __TIS_MKFS_PREALLOCATE
+// the value of this variable must be provided externally
+extern size_t __tis_mkfs_preallocate_size;
+static unsigned char * alloc_data (int fd, size_t st_size) {
+  //@ assert file_fits_1: st_size <= __tis_mkfs_preallocate_size ;
+  return malloc (__tis_mkfs_preallocate_size);
+}
+static unsigned char * realloc_data (unsigned char * old, size_t st_size) {
+  //@ assert file_fits_2: st_size <= __tis_mkfs_preallocate_size ;
+  return old;
+}
+#else
+
+static unsigned char * alloc_data (int fd, size_t st_size) {
+  if (!st_size) st_size = 1U;
+  return malloc (st_size);
+}
+static unsigned char * realloc_data (unsigned char * old, size_t st_size) {
+  if (!st_size) st_size = 1U;
+  return realloc (old, st_size);
+}
 #endif
 
 //===============================================================================
+
+// No need to dynamically allocate inodes.
+// There are already statically allocated for pre-existing objects.
+// This table is a pool of inodes to be used for new objects.
+static int  __tis_mkfs_next_inode_table = 0;
+static struct stat __tis_mkfs_inode_table[FOPEN_MAX];
+static const size_t __tis_mkfs_inode_nb_max = FOPEN_MAX;
 
 struct __tis_fd_info __tis_file_desc[FOPEN_MAX];
 struct __tis_socket __tis_fd_socket[FOPEN_MAX];
@@ -43,9 +82,12 @@ struct __tis_socket __tis_fd_socket[FOPEN_MAX];
 //===============================================================================
 
 struct stat * __tis_mk_inode (int mode) {
-  struct stat * st = malloc (sizeof (struct stat));
-  //@ assert no_more_inode_mkfs_niy: st != \null;
-  st->st_ino = __tis_next_inode;  __tis_next_inode++;
+  /*@ assert __tis_mkfs_next_inode_table < __tis_mkfs_inode_nb_max ; */
+  struct stat * st =
+    __tis_mkfs_inode_table + __tis_mkfs_next_inode_table;
+  __tis_mkfs_next_inode_table++;
+  st->st_ino = __tis_next_inode;
+  __tis_next_inode++;
   st->st_mode = mode;
   st->st_uid = __tis_uid;
   st->st_gid = __tis_gid;
@@ -71,7 +113,6 @@ void __tis_init_fd_file (FILE * f, int fd, int kind, int flags,
 struct __fc_fs_file __fc_fs_stdin, __fc_fs_stdout, __fc_fs_stderr;
 
 struct stat __tis_stdin_inode = {
-  .st_ino = 1,
   .st_mode = S_IFCHR | S_IRUSR | S_IRGRP | S_IROTH,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
@@ -79,7 +120,6 @@ struct stat __tis_stdin_inode = {
 };
 
 struct stat __tis_stdout_inode = {
-  .st_ino = 2,
   .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
@@ -87,7 +127,6 @@ struct stat __tis_stdout_inode = {
 };
 
 struct stat __tis_stderr_inode = {
-  .st_ino = 3,
   .st_mode = S_IFCHR | S_IWUSR | S_IWGRP | S_IWOTH,
   .st_nlink = 1,
   .st_dev = __TIS_MKFS_ST_DEV,
@@ -96,26 +135,28 @@ struct stat __tis_stderr_inode = {
 
 __attribute__((constructor))
 void __tis_mkfs_init_stdio (void) {
+  __tis_stdin_inode.st_ino = __tis_next_inode;
   __tis_stdin_inode.st_uid = __tis_uid;
   __tis_stdin_inode.st_gid = __tis_gid;
   __tis_init_fd_file (stdin, 0, S_IFCHR, O_RDONLY, &__tis_stdin_inode,
                       &__fc_fs_stdin);
   __fc_fopen[0] = *stdin;
 
+  __tis_stdout_inode.st_ino = __tis_next_inode + 1;
   __tis_stdout_inode.st_uid = __tis_uid;
   __tis_stdout_inode.st_gid = __tis_gid;
   __tis_init_fd_file (stdout, 1, S_IFCHR, O_WRONLY, &__tis_stdout_inode,
                       &__fc_fs_stdout);
   __fc_fopen[1] = *stdout;
 
-  __tis_init_fd_file (stderr, 2, S_IFCHR, O_WRONLY, &&__tis_stderr_inode,
-                      &__fc_fs_stderr);
-  __fc_fopen[2] = *stderr;
+  __tis_stderr_inode.st_ino = __tis_next_inode + 2;
   __tis_stderr_inode.st_uid = __tis_uid;
   __tis_stderr_inode.st_gid = __tis_gid;
+  __tis_init_fd_file (stderr, 2, S_IFCHR, O_WRONLY, &__tis_stderr_inode,
+                      &__fc_fs_stderr);
+  __fc_fopen[2] = *stderr;
 
-  /*@ assert __tis_next_inode == 1; */
-  __tis_next_inode = 4;
+  __tis_next_inode += 3;
 }
 
 int __tis_get_next_file_desc (void) {
@@ -182,7 +223,7 @@ int __tis_check_fd_dir_ok (int fd) {
     errno = EBADF;
     return -1;
   }
-  if ( __fc_opendir[fd].__fc_dir_id != fd 
+  if ( __fc_opendir[fd].__fc_dir_id != fd
       || __fc_opendir[fd].__fc_dir_inode == NULL) {
     errno = EBADF;
     return -1;
@@ -214,24 +255,21 @@ int __tis_check_fd_socket_ok (int fd) {
  */
 int __tis_stat_access (struct stat * st, int mode) {
   mode_t m = st->st_mode;
-  int ok;
+  int ok = 1;
   if (st->st_uid == __tis_euid) {
-    ok = 1;
-    ok = (mode & R_OK) ? ok && (m & S_IRUSR) : ok;
-    ok = (mode & W_OK) ? ok && (m & S_IWUSR) : ok;
-    ok = (mode & X_OK) ? ok && (m & S_IXUSR) : ok;
+    if ((mode & R_OK) && !(m & S_IRUSR)) ok = 0;
+    else if ((mode & W_OK) && !(m & S_IWUSR)) ok = 0;
+    else if ((mode & X_OK) && !(m & S_IXUSR)) ok = 0;
   }
   else if (st->st_uid == __tis_egid) {
-    ok = 1;
-    ok = (mode & R_OK) ? ok && (m & S_IRGRP) : ok;
-    ok = (mode & W_OK) ? ok && (m & S_IWGRP) : ok;
-    ok = (mode & X_OK) ? ok && (m & S_IXGRP) : ok;
+    if ((mode & R_OK) && !(m & S_IRGRP)) ok = 0;
+    else if ((mode & W_OK) && !(m & S_IWGRP)) ok = 0;
+    else if ((mode & X_OK) && !(m & S_IXGRP)) ok = 0;
   }
   else {
-    ok = 1;
-    ok = (mode & R_OK) ? ok && (m & S_IROTH) : ok;
-    ok = (mode & W_OK) ? ok && (m & S_IWOTH) : ok;
-    ok = (mode & X_OK) ? ok && (m & S_IXOTH) : ok;
+    if ((mode & R_OK) && !(m & S_IROTH)) ok = 0;
+    else if ((mode & W_OK) && !(m & S_IWOTH)) ok = 0;
+    else if ((mode & X_OK) && !(m & S_IXOTH)) ok = 0;
   }
   if (ok) {
 #ifndef __TIS_MKFS_NO_ERR
@@ -424,10 +462,6 @@ uid_t __tis_mkfs_getegid(void) { return __tis_egid; }
 uid_t getegid(void) { return __tis_mkfs_getegid(); }
 #endif // __TIS_USER_GETEGID
 
-static size_t __max(size_t a, size_t b) {
-  return (a>b)?a:b;
-}
-
 //===============================================================================
 // 'open' file functions
 //-------------------------------------------------------------------------------
@@ -445,12 +479,7 @@ int __tis_open_fd (int fd, int kind, int flags, unsigned char * content, struct 
   if (!file->__fc_data) {
     unsigned char * ptr = NULL;
     if (content || flags & O_CREAT) {
-#ifdef __TIS_MKFS_PREALLOCATE
-      //@ assert file_fits_1: st->st_size <= __tis_mkfs_preallocate_size ;
-      ptr = malloc (__tis_mkfs_preallocate_size);
-#else
-      ptr = malloc (__max (1, st->st_size));
-#endif
+      ptr = alloc_data (fd, st->st_size);
       if (ptr == NULL) {
 	errno = ENOMEM;
 	return -1;
@@ -800,7 +829,6 @@ ssize_t read(int fd, void *buf, size_t count)
 size_t __tis_mkfs_fread(void * restrict ptr, size_t size,
                         size_t nmemb, FILE * restrict stream) {
   int fd = stream->__fc_stdio_id;
-  /*@ assert size * nmemb == (size_t) size * nmemb; */
   size_t toread = size * nmemb;
   size_t n_bytes = __tis_mkfs_read (fd, ptr, toread); // handle __TIS_MKFS_NO_ERR
   if (n_bytes < toread)
@@ -974,11 +1002,8 @@ size_t __tis_pwrite (int fd, const void *buf, size_t count, off_t offset) {
     offset = stream->__fc_inode->st_size;
   if (stream->__fc_file->__fc_data) {
     if (offset + count > stream->__fc_inode->st_size) {
-#ifdef __TIS_MKFS_PREALLOCATE
-      //@ assert file_fits_2: (offset + count) <= __tis_mkfs_preallocate_size ;
-      unsigned char * ptr = stream->__fc_file->__fc_data;
-#else
-      unsigned char * ptr = realloc (stream->__fc_file->__fc_data, __max (1, offset + count));
+      unsigned char * ptr;
+      ptr = realloc_data (stream->__fc_file->__fc_data, offset + count);
 #ifndef __TIS_MKFS_NO_ERR
       if (ptr == NULL) {
         Frama_C_make_unknown ((char*)&errno, sizeof (errno));
@@ -987,7 +1012,6 @@ size_t __tis_pwrite (int fd, const void *buf, size_t count, off_t offset) {
 #else
       //@ assert write_no_err_realloc_ok: ptr != \null;
 #endif // __TIS_MKFS_NO_ERR
-#endif
       stream->__fc_file->__fc_data = ptr;
     }
     // if this write leaves a hole, fill it with zeros
@@ -1265,6 +1289,7 @@ int fsetpos(FILE *stream, fpos_t *pos)
 //===============================================================================
 // 'truncate' functions
 //-------------------------------------------------------------------------------
+
 int __tis_truncate (FILE * stream, off_t length) {
   struct stat * st = stream->__fc_inode;
   int ret = __tis_stat_access (st, W_OK); // handle __TIS_MKFS_NO_ERR
@@ -1275,23 +1300,19 @@ int __tis_truncate (FILE * stream, off_t length) {
     return -1;
   }
   if (stream->__fc_file->__fc_data) {
-#ifdef __TIS_MKFS_PREALLOCATE
-    //@ assert file_fits_3: length <=  __tis_mkfs_preallocate_size ;
-    unsigned char * ptr = stream->__fc_file->__fc_data;
-#else
-    unsigned char * ptr = realloc (stream->__fc_file->__fc_data, __max (1, length));
+      unsigned char * ptr;
+      ptr = realloc_data (stream->__fc_file->__fc_data, length);
 #ifndef __TIS_MKFS_NO_ERR
-    if (ptr == NULL) {
-      Frama_C_make_unknown ((char*)&errno, sizeof (errno));
-      return -1;
-    }
+      if (ptr == NULL) {
+        Frama_C_make_unknown ((char*)&errno, sizeof (errno));
+        return -1;
+      }
 #else
     //@ assert truncate_no_err_realloc_ok: ptr != \null;
 #endif // __TIS_MKFS_NO_ERR
-#endif
-    if (length > st->st_size)
-      memset (ptr + st->st_size, 0, length - st->st_size);
-    stream->__fc_file->__fc_data = ptr;
+      if (length > st->st_size)
+        memset (ptr + st->st_size, 0, length - st->st_size);
+      stream->__fc_file->__fc_data = ptr;
   }
   st->st_size = length;
   return 0;
@@ -1532,6 +1553,13 @@ int pipe(int pipefd[2])
 { return __tis_mkfs_pipe(pipefd); }
 #endif // __TIS_USER_PIPE
 
+int __tis_close_fifo (int fd) {
+  int res = fclose (&__fc_fopen[fd]);
+  free (__fc_fopen[fd].__fc_file);
+  __fc_fopen[fd].__fc_file = NULL;
+  return res;
+}
+
 //===============================================================================
 // About sockets
 //===============================================================================
@@ -1689,8 +1717,7 @@ int __tis_mkfs_close(int fd) {
   }
   switch ( __tis_file_desc[fd].__tis_fd_kind) {
     case 0: errno = EBADF; return -1;
-    case S_IFIFO:
-      free (__fc_fopen[fd].__fc_file);
+    case S_IFIFO: return __tis_close_fifo (fd);
     case S_IFREG: return fclose (&__fc_fopen[fd]);
     case S_IFDIR: return closedir (&__fc_opendir[fd]);
     case S_IFSOCK: return __tis_close_socket (&__tis_fd_socket[fd]);
@@ -1855,22 +1882,23 @@ char *tmpnam(char *s)
 
 int __tis_mkfs_mkstemp(char *template) {
   char *tmp= template + strlen(template) - 6;
+  int nx;
   if (tmp<template) {
     errno=EINVAL;
     return -1;
   }
-  for (int nx =0; nx <6; nx ++) {
+  for (nx = 0; nx < 6; nx ++) {
     if (tmp[nx ]!='X') {
       errno=EINVAL;
       return -1;
     }
   }
-  for (int nx =0; nx <6; nx ++) {
+  for (nx = 0; nx < 6; nx ++) {
     tmp[nx ] = 'a';
   }
 
   int f;
-  for (int nx =0; nx <6; nx ++) {
+  for (nx = 0; nx < 6; nx ++) {
     for (char c = 'a'; c <= 'z'; c++) {
       tmp[nx] = c;
       f = __tis_mkfs_get_file (template);
@@ -1878,12 +1906,17 @@ int __tis_mkfs_mkstemp(char *template) {
         break;
     }
   }
+
+  int fd;
+
   if (f != -1) {
     errno = EEXIST;
-    return -1;
+    fd = -1;
   }
-  int flags = O_CREAT|O_RDWR|O_EXCL|O_NOFOLLOW;
-  int fd = __tis_open_file (template,flags,0600); // handle __TIS_MKFS_NO_ERR
+  else {
+    //  handle __TIS_MKFS_NO_ERR:
+    int fd = __tis_open_file (template, O_CREAT|O_RDWR|O_EXCL|O_NOFOLLOW, 0600);
+  }
   return fd;
 }
 #ifndef __TIS_USER_MKSTEMP
@@ -1892,11 +1925,15 @@ int mkstemp(char *template)
 #endif // __TIS_USER_MKSTEMP
 
 FILE *__tis_mkfs_tmpfile(void) {
-  char template[] = "/tmp/tmpfile-XXXXXX";
+  FILE *res;
+  char template[30];
+  strcpy(template, "/tmp/tmpfile-XXXXXX");
   int fd = mkstemp(template); // handle __TIS_MKFS_NO_ERR
   if (fd < 0)
-    return NULL;
-  return &__fc_fopen[fd];
+    res = NULL;
+  else
+    res = &__fc_fopen[fd];
+  return res;
 }
 #ifndef __TIS_USER_TMPFILE
 FILE *tmpfile(void)

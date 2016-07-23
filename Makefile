@@ -2191,6 +2191,7 @@ clean:: $(PLUGIN_LIST:=_CLEAN) $(PLUGIN_DYN_LIST:=_CLEAN) \
 	$(RM) bin/toplevel.byte$(EXE) bin/viewer.byte$(EXE) \
 		bin/ptests.byte$(EXE) bin/*.opt$(EXE) bin/toplevel.top$(EXE)
 	$(RM) bin/frama-c-config$(EXE)
+	$(RM) filesystem/*.cm*
 
 smartclean:
 	$(MAKE) -f share/Makefile.clean smartclean

@@ -234,21 +234,23 @@ let pp_c_file ~nb_max_files ~nb_max_dirs h_filename fmt fs =
   let nb_max_files = match nb_max_files with None -> nb_files | Some n -> n in
   let nb_max_dirs = match nb_max_dirs with None -> nb_dirs | Some n -> n in
 
+  let pp_array name is_dir nb_max inodes =
+    (* avoid array with length 0 *)
+    let nb_max = if nb_max > 0 then nb_max else 1 in
+    Format.fprintf fmt "@[<v2>struct %s %ss[%d]" name name nb_max;
+    if List.length inodes > 0 then
+      (* don't print empty initializer (GCC extension only) *)
+      Format.fprintf fmt " = {%a@]@,};@." (pp_fs_entries is_dir) inodes
+    else
+      Format.fprintf fmt "@];@."
+  in
   Format.fprintf fmt "/* List of files */@.";
-  Format.fprintf fmt
-    "@[<v2>struct __fc_fs_file __fc_fs_files[%d] = {%a@]@,};@."
-    nb_max_files (pp_fs_entries false) file_inodes;
+  pp_array "__fc_fs_file" false nb_max_files file_inodes;
   Format.fprintf fmt "int __fc_fs_files_nb = %d;@." nb_files;
   Format.fprintf fmt "int __fc_fs_files_nb_max = %d;@." nb_max_files;
 
   Format.fprintf fmt "/* List of directories */@.";
-  if nb_max_dirs > 0 then
-    Format.fprintf fmt
-      "@[<v2>struct __fc_fs_dir __fc_fs_dirs[%d] = {%a@]@,};@."
-      nb_max_dirs (pp_fs_entries true) dir_inodes
-  else (* avoid array with length 0 *)
-    Format.fprintf fmt
-      "@[<v2>struct __fc_fs_dir __fc_fs_dirs[1];@.";
+  pp_array "__fc_fs_dir" true nb_max_dirs dir_inodes;
   Format.fprintf fmt "int __fc_fs_dirs_nb = %d;@." nb_dirs;
   Format.fprintf fmt "int __fc_fs_dirs_nb_max = %d;@." nb_max_dirs;
 
