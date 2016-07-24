@@ -942,6 +942,14 @@ module ValShowProgress =
        let help = "Show progression messages during analysis"
      end)
 
+    let () = Parameter_customize.set_group messages
+module ValShowAllocations =
+  False
+    (struct
+       let option_name = "-val-show-allocations"
+       let help = "Show memory allocations"
+     end)
+
 let () = Parameter_customize.set_group messages
 module ValShowInitialState =
   True

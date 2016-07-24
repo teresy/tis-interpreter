@@ -290,17 +290,21 @@ let alloc_abstract stack loc weak prefix sizev =
   let tsize = guess_intended_malloc_type stack sizev (weak = Strong) in
   let type_base = type_from_nb_elems loc tsize in
   let var = create_new_var stack prefix type_base weak in
-  if Value_parameters.ValShowProgress.get () then begin
+  if Value_parameters.ValShowProgress.get () ||
+    Value_parameters.ValShowAllocations.get()
+  then begin
     Value_parameters.result ~current:true
-      "allocating %svariable %a of type %a"
+      "allocating %svariable %a of type %a%t%t"
       (if weak = Weak then "weak " else "")
       Printer.pp_varinfo var
-      Printer.pp_typ type_base;
-    if tsize.min_bytes <> tsize.max_bytes
-    then
-      Value_parameters.result ~current:true
-	"(between %a and %a bytes)"
-	Int.pretty tsize.min_bytes Int.pretty tsize.max_bytes;
+      Printer.pp_typ type_base
+    (fun fmt ->
+      if tsize.min_bytes <> tsize.max_bytes
+      then
+        Format.fprintf fmt
+          " (between %a and %a bytes)"
+          Int.pretty tsize.min_bytes Int.pretty tsize.max_bytes)
+      Value_util.pp_callstack
   end;
   let size_char = Bit_utils.sizeofchar () in
   (* Sizes are in bits *)

@@ -120,6 +120,7 @@ module SplitReturnFunction:
 module SplitGlobalStrategy: State_builder.Ref with type data = Split_strategy.t
 
 module ValShowProgress: Parameter_sig.Bool
+module ValShowAllocations: Parameter_sig.Bool
 module ValShowInitialState: Parameter_sig.Bool
 module ValShowPerf: Parameter_sig.Bool
 module ValStatistics: Parameter_sig.Bool
