@@ -295,16 +295,20 @@ extern size_t strxfrm (char *restrict __dest,
 
 /*@ requires valid_string_src: valid_read_string(__s);
   @ assigns \result; // FIXME
-  @ ensures \valid(\result+(0..strlen(__s))) && strcmp(\result,__s) == 0;
+  @ ensures \result == \null ||
+                (\valid(\result+(0..strlen(__s))) && strcmp(\result,__s) == 0);
   @*/
 extern char *strdup (const char *__s);
 
-/*@ requires valid_string_src: valid_read_string(__s); // FIXME
-  @ assigns \result; // FIXME
-  @ ensures \valid(\result+(0..minimum(strlen(__s),__n)))
-  @         && valid_string(\result) && strlen(\result) <= __n
-  @         && strncmp(\result,__s,__n) == 0;
-  @*/
+/*@
+  requires valid_string_src: valid_read_string(__s); // FIXME
+  assigns \result; // FIXME
+  ensures
+    \result == \null ||
+      (\valid(\result+(0..minimum(strlen(__s),__n)))
+       && valid_string(\result) && strlen(\result) <= __n
+       && strncmp(\result,__s,__n) == 0);
+*/
 extern char *strndup (const char *__s, size_t __n);
 
 #ifdef _GNU_SOURCE

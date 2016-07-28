@@ -14,7 +14,7 @@ char *strdup(const char *s)
   size_t l = strlen(s);
   l++;
   char *p = malloc(l);
-  memcpy(p, s, l);
+  if (p) memcpy(p, s, l);
   return p;
 }
 
