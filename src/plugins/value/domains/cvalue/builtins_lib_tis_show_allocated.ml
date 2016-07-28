@@ -29,13 +29,15 @@ let tis_show_allocated state args =
           Value_parameters.result ~current:true ~once:false
             "remaining allocated variables:@\n  @[%a@]"
             (fun fmt ->
-              let sep = ref "" in
+              let first = ref true in
               Model.iter
                 (fun base _ ->
                   match base with
                   | Base.Allocated (v,_) ->
-                    Format.fprintf fmt "%s%a" !sep Printer.pp_varinfo v;
-                    sep := ",@ "
+                    if (!first)
+                    then first := false
+                    else Format.fprintf fmt ",@ ";
+                    Format.fprintf fmt "%a" Printer.pp_varinfo v;
                   | _ -> ()))
             m);
         { Value_types.c_values = [ (None, state) ];

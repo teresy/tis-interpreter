@@ -1783,7 +1783,7 @@ let add_variadic_arguments_to_state kf actuals state =
 
       (* The name of the variable corresponding to the array contains
          the function's name. *)
-      let name = (Kernel_function.get_name kf) ^ "_va_args_array" in
+      let name = "__va_args_array_" ^ (Kernel_function.get_name kf) in
       let typ = array_typ in
 
       (* Prepare the variable. *)
@@ -1798,7 +1798,7 @@ let add_variadic_arguments_to_state kf actuals state =
       (* Prepare the base. *)
       let base =
         let validity = Base.validity_from_type varinfo in
-        Base.register_allocated_var varinfo validity
+        Base.register_memory_var varinfo validity
       in
 
       (* Write the uninitialized value to the appropriate location. *)
@@ -1811,8 +1811,7 @@ let add_variadic_arguments_to_state kf actuals state =
       (* Set the variable as the va_args variable of the current function. *)
       Va_args.add_va_args_varinfo_for_function kf varinfo;
 
-      (* Return the base and the new abstract state. *)
-      (base, state)
+      base, state
     in
 
     (* 2.3. We fill the array with values. *)
