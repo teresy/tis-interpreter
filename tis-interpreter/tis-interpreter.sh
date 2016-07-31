@@ -129,7 +129,7 @@ local common_files="\
   $ROOT_PATH/common_helpers/common_time.c"
 
 local compiler=cc
-local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -I $ROOT_PATH/filesystem -dD -DTIS_INTERPRETER -D__TIS_MKFS_STATIC_ALLOCATE -D__TIS_MKFS_NO_ERR -D__TIS_USER_FPUTS -D__TIS_USER_PUTS  -D__FC_MACHDEP_X86_64"
+local compiler_opts="-C -E -isystem $TIS_PATH/share/frama-c/libc -I. -I $ROOT_PATH/filesystem -dD -DTIS_INTERPRETER -D__TIS_MKFS_STATIC_ALLOCATE -D__TIS_MKFS_NO_ERR -D__TIS_USER_FPUTS -D__TIS_USER_PUTS  -D__FC_MACHDEP_X86_64"
 
 declare -a others
 
