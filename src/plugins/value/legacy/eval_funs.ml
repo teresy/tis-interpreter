@@ -87,13 +87,27 @@ let compute_using_body (kf, f) ~call_kinstr ~with_formals =
     of behaviors, but one is more efficient and the other is more precise. *)
 let compute_using_specification (kf, spec) ~call_kinstr ~with_formals () =
   if Value_parameters.InterpreterMode.get()
-  then begin
-    warning_once_current "Library function call. Stopping.%t"
-      Value_util.pp_callstack;
-    raise Db.Value.Aborted
-  end;
-  Value_parameters.feedback ~once:true "@[using specification for function %a@]"
-    Kernel_function.pretty kf;
+  then
+    begin
+    (* check if the function call assigns an lvalue *)
+    match call_kinstr with
+    | Kstmt ({skind = Instr (Call (lval,_,_,_))}) ->
+       begin
+        match lval with
+        | Some _ ->
+          warning_once_current "Assigning with an extern function. Stopping.%t"
+                               Value_util.pp_callstack;
+          raise Db.Value.Aborted
+        | None -> ()
+       end
+    | Kglobal -> ()
+    | _ -> assert false
+    end;
+  if Value_parameters.ValShowProgress.get()
+  then
+    Value_parameters.feedback ~once:true
+      "@[using specification for function %a@]"
+      Kernel_function.pretty kf;
   let several_behaviors =
     match spec.spec_behavior with
     | [] | [ _ ] -> false

@@ -23,9 +23,6 @@ void (*signal(int signum, void (*handler)(int)  ))(int)
     return empty_handler;
 }
 
-void exit(int status) {
-}
-
 int vfprintf(FILE *stream, const char *format, va_list ap)
 {
     Frama_C_show_each_vfprintf(stream, format, ap);

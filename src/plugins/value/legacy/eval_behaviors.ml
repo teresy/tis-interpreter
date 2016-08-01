@@ -55,6 +55,12 @@ let compute_assigns kf assigns return_used sclob ~with_formals ~per_behavior =
     let treat_assign state ({it_content = out}, ins as asgn) =
       (* Evaluate the contents of one element of the from clause, topify them,
          and add them to the current state of the evaluation in acc *)
+      if Value_parameters.InterpreterMode.get()
+      then begin
+         warning_once_current "Assign in extern function call. Stopping.%t"
+                              Value_util.pp_callstack;
+         raise Db.Value.Aborted
+       end;
       let one_from_contents acc { it_content = t } =
         let r = Eval_terms.eval_term ~with_alarms env t in
 	Cvalue.V.join acc (Cvalue.V.topify_arith_origin r.Eval_terms.eover)
