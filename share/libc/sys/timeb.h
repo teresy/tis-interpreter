@@ -15,21 +15,24 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __FC_ALLOCA_H
-#define __FC_ALLOCA_H
+/* POSIX header */
 
-#include "__fc_define_size_t.h"
-#include "features.h"
+#ifndef __FC_SYS_TIMEB_H__
+#define __FC_SYS_TIMEB_H__
+
+#include "../features.h"
+#include "../__fc_define_time_t.h"
 
 __BEGIN_DECLS
 
-/*@ ghost extern int __fc_heap_status __attribute__((FRAMA_C_MODEL)); */
+struct timeb {
+  time_t time;
+  unsigned short millitm;
+  short timezone;
+  short dstflag;
+};
 
-/*@
-  @ assigns __fc_heap_status \from size, __fc_heap_status;
-  @ assigns \result \from size, __fc_heap_status;
-*/
-void *alloca(size_t size);
+int ftime(struct timeb *timebuf);
 
 __END_DECLS
 
