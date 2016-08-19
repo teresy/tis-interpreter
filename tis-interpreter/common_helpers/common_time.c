@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/timeb.h>
 #include <unistd.h>
 
 /*
@@ -144,5 +145,14 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
   tv->tv_sec = __CURRENT_TIME;
   tv->tv_usec = 455745;
+  return 0;
+}
+
+int ftime(struct timeb *timebuf)
+{
+  time(&timebuf->time);
+  timebuf->millitm = 0;
+  timebuf->timezone = 0;
+  timebuf->dstflag = 0;
   return 0;
 }
