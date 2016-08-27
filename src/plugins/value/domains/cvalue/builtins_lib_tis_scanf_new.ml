@@ -831,12 +831,12 @@ let get_input (get_char, move_to_next) directive  =
    | End_of_input ->
      read_complete := not (Buffer.contents bufferRes = "");
      if not !read_complete then raise Input_failure
-     (* The Matching_failure exception should be catched by the caller *)
-     (* The Input_failure exception should be catched by the caller and result
+     (* The Matching_failure exception should be caught by the caller *)
+     (* The Input_failure exception should be caught by the caller and result
       * in returning EOF value. *)
   );
   (* return value for function `get_input` *)
-  (!read_chars_count, Buffer.contents bufferRes, !read_complete)
+  !read_chars_count, Buffer.contents bufferRes, !read_complete
 
 
 (* function integer_func:
@@ -1398,8 +1398,7 @@ let interpret_format ~character_width state format args (get_source, advance) =
                         write_string_to_memory source_char_size arg
                           !state s1 ~is_char_cs:false;
                       incr counter;
-                    end
-                  else (); (* NOT wroting to memeory *)
+                    end;
 
                   Buffer.reset bracket_buff;
                 end
@@ -1761,16 +1760,18 @@ let abstract_strto_int ~is_ato ~state ~nptr ~endptr ~base ~ret_type =
   let directive =
     if (base = 0) || (2 <= base && base <= 36) then ReadStrto_int base
     else begin
-      Value_parameters.error ~current:true
-        "assert (base = 0 || 2 <= base <= 36)";
+      Value_parameters.warning ~current:true
+        "wrong base for strto* function. assert (base == 0 || 2 <= base <= 36)";
       raise Undefined_behavior
     end
   in
 
   let read_chars_count, parsed_int_string, _ =
-    get_input (get_char, advance) directive
+    try
+      get_input (get_char, advance) directive
+    with Input_failure ->
+      0, "", false
   in
-
 
   let str_to_write = parsed_int_string in
   let is_negative = str_to_write.[0] = '-' in
@@ -1784,12 +1785,12 @@ let abstract_strto_int ~is_ato ~state ~nptr ~endptr ~base ~ret_type =
       str_to_write, l
   in
   let integer =
-    let tmp = (* integer without eventual sign *)
+    let tmp = (* integer without optional sign *)
       integer_func length (String.lowercase s) 0 (Integer.zero) '-' ~base
     in
     if is_negative then begin
       (* for strtoul (strtoull), if there was a leading sign, the function
-         returns the negation of the result of the conversion represented as
+         returns the opposite of the result of the conversion represented as
          an unsigned value, unless the original (nonnegated) value would
          overflow; in the latter case return ULONG_MAX (ULLONG_MAX) *)
       let t =
