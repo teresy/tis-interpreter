@@ -308,6 +308,8 @@ let src_len = ref Ival.zero
 let fmt_loc_bits = ref Locations.Location_Bits.bottom
 let fmt_len = ref Ival.zero
 
+let string_zero = "0"
+
 (* **************************** REGEX ************************************** *)
 (* WARNING: when using OR ("\\|") in a regexp string, always put the strongest
  * condition first, otherwise the matched string will be that of the weakeast
@@ -326,7 +328,7 @@ let reg_decimal_point = "\\."
 let reg_decimal_point_opt = reg_decimal_point ^"?"
 let reg_sign_opt = "[+-]?"
 
-let reg_zero = "0"
+let reg_zero = string_zero
 let reg_decimal_digit = "[0-9]"
 let reg_non_zero_digit = "[1-9]"
 let reg_octal_digit = "[0-7]"
@@ -818,7 +820,7 @@ let get_input (get_char, move_to_next) directive  =
          (* If no conversion could be performed, strto* and ato* return zero *)
          if matched_string = "" then begin
            read_chars_count := 0;
-           "0"
+           string_zero
          end
          else matched_string
        in
@@ -1770,19 +1772,18 @@ let abstract_strto_int ~is_ato ~state ~nptr ~endptr ~base ~ret_type =
     try
       get_input (get_char, advance) directive
     with Input_failure ->
-      0, "", false
+      0, string_zero, false
   in
 
-  let str_to_write = parsed_int_string in
-  let is_negative = str_to_write.[0] = '-' in
+  let is_negative = parsed_int_string.[0] = '-' in
 
   (* strip leading sign and calculate length *)
   let s, length =
-    let l = String.length str_to_write in
-    if is_sign str_to_write.[0] then
-      String.sub str_to_write 1 (l - 1), (l - 1)
+    let l = String.length parsed_int_string in
+    if is_sign parsed_int_string.[0] then
+      String.sub parsed_int_string 1 (l - 1), (l - 1)
     else
-      str_to_write, l
+      parsed_int_string, l
   in
   let integer =
     let tmp = (* integer without optional sign *)
