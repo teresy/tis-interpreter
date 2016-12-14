@@ -469,47 +469,9 @@ let make_padding_uninitialized (offsetmap : V_Offsetmap.t) (typ : typ) =
       of [f] in [state]. It it is used after a call to clean up the state,
       and to gain some informations on the actuals.  *)
   let reduce_actuals_by_formals formals actuals state =
-    let rec find_actual_varinfo e = match e.enode with
-      | Lval (Var vi, NoOffset) ->
-         if not vi.vaddrof && not (Cil.typeHasQualifier "volatile" vi.vtype)
-         then Some vi else None
-      | CastE (typ, e') -> begin
-        match find_actual_varinfo e' with
-        | None -> None
-        | Some vi as ovi ->
-           (* we can ignore casts, but only if they have no effect on the
-              abstract value *)
-           match Cil.unrollType typ, Cil.unrollType vi.vtype with
-           | (TInt (ik, _) | TEnum ({ekind = ik}, _)),
-             (TInt (ik', _) | TEnum ({ekind = ik'}, _)) ->
-              if Cil.bytesSizeOfInt ik = Cil.bytesSizeOfInt ik' &&
-                 Cil.isSigned ik = Cil.isSigned ik'
-              then ovi else None
-           | TPtr _, TPtr _ -> ovi
-           | TFloat (fk, _), TFloat (fk', _) ->
-              if fk = fk' then ovi else None
-           | _ -> None
-      end
-      | _ -> None
-    in
-    let cleanup acc exp v =
+    let cleanup acc _exp v =
       let b = Base.of_varinfo v in
-      let reduced = match find_actual_varinfo exp with
-        | Some vi -> begin
-          (* Replace [vi] by [b] when the latter is is bound in [state]. This
-             is sound because, had [b] been written during the call, it would
-             have been removed. (see {!externalize} below). Thus, either [b]
-             is equal to [vi], or it has been reduced during the call (in which
-             case it is useful to reduce [vi]). *)
-          try
-            match Model.find_base b acc with
-            | `Bottom | `Top -> acc
-            | `Map offsm -> Model.add_base (Base.of_varinfo vi) offsm acc
-          with Not_found -> acc
-        end
-        | None -> acc
-      in
-      Cvalue.Model.remove_base b reduced
+      Cvalue.Model.remove_base b acc
     in
     Function_args.fold_left2_best_effort cleanup state actuals formals
 
