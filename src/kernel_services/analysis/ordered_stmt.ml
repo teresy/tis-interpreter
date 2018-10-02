@@ -42,9 +42,7 @@ module Unorder = struct
 end
 
 (* Array from ordered_stmts to connex_component number. *)
-module Connex_components = struct
-  include Datatype.Array(Datatype.Int)
-end
+module Connex_components = Datatype.Array(Datatype.Int)
 
 module Ordered_stmt = Kernel_function.Make_Table
   (Datatype.Triple(Order)(Unorder)(Connex_components))
